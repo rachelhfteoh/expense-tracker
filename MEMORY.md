@@ -33,15 +33,25 @@ Lessons learned, key decisions, and things to remember for future sessions.
 
 ### Calculator keyboard instead of native keyboard (Session 2)
 - Rachel saw a reference app with an in-app calculator that pops up for the amount field.
-- Custom `#calc-keyboard` (fixed, z-index 500) slides up from the bottom like a native keyboard.
+- Calculator is inline in the form (not fixed-position), shown/hidden via display:none/block.
 - Supports `+`, `−`, `×`, `÷`, preview of running total, `=` to evaluate, OK to confirm.
 - Amount field uses `type="text" inputmode="none" readonly` — this suppresses the native keyboard on iOS.
 
-### Compact form + category sheet (Session 3)
-- Rachel wanted the add form to be compact like a reference app — no visible category grid on screen.
-- Category is a tappable row that opens a separate bottom sheet (`#cat-sheet`).
-- The category sheet has a pencil icon to add custom categories (emoji + name + colour swatch).
-- Custom categories are stored in `data.customCats[]` with key `'custom_<uid>'`.
+### Inline bottom panel — calc and category share same space (Session 4)
+- Rachel wanted the category grid to appear at the bottom replacing the calculator, same as reference app.
+- `#bottom-panel` contains two children: `#calc-inner` and `#cat-inner` — only one shown at a time.
+- Tapping Amount → `openCalc()` → shows `#calc-inner`. Tapping Category → `openCatPanel()` → shows `#cat-inner`.
+- Toggle is direct DOM show/hide — NO re-render. This avoids focus loss when Note/Desc field is active.
+- `initPanel()` must be called after every `renderContent()` DOM rebuild to restore the correct panel.
+- `activePanel` state (`'calc' | 'cat' | null`) tracks which panel should be visible; always reset to `null` before entering add view, then `openCalc()` sets it.
+
+### Compact form + category panel (Sessions 3–4)
+- Rachel wanted the add form to be compact — no visible category grid on screen at first.
+- Category tapping now opens the inline `#cat-inner` panel (not a separate sheet).
+- `#cat-sheet` is now ONLY used for the "New Category" name-entry form.
+- Custom categories are stored in `data.customCats[]` with `key: 'custom_<uid>'`, emoji auto-assigned '📦', color auto-from palette.
+- "Other" is hidden from the category picker but kept as a code fallback in `getCat()`.
+- "Add" tile at the end of the inline grid opens `#cat-sheet` in name-only mode.
 
 ### Full-page add view instead of bottom sheet (Session 3)
 - Rachel wanted tapping + to open a full page, not slide up a sheet from the bottom.
@@ -50,7 +60,6 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - Nav bar and FAB are hidden when `view === 'add'`.
 - Calculator auto-opens (`openCalc()`) immediately when entering the add view.
 - Date, Note, Description inputs have `onfocus="closeCalc()"` so system keyboard can take over when those fields are tapped.
-- A `.add-page-spacer` (290px) sits at the bottom of the form so content is scrollable above the fixed calc keyboard.
 
 ### Description + photo (Session 3)
 - Rachel wanted a long-text description field below Note, and a camera button to attach a photo.
@@ -97,15 +106,20 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `type="number"` prevents storing expression strings like `3.75+4.95` — the browser sanitises the value.
 - Use `type="text" inputmode="none"` to support both plain numbers and expressions.
 
-### overlayClick must check calc keyboard first
-- `#calc-keyboard` sits at z-index 500. When it's open, tapping the overlay should close the calc only.
-- Always add `if (calc.show) { closeCalc(); return; }` as the first check in `overlayClick()`.
-
-### Overlay behaviour differs between old sheet flow and add-page view
-- In old sheet flow: overlay shown by main sheet, stays when sub-sheets close (so add-sheet stays dimmed).
-- In add-page view (`view === 'add'`): overlay shown by sub-sheets (cat/repeat), must hide when they close.
-- `closeCatSheet()` always hides the overlay. `overlayClick()` for repeat checks `view === 'add'` before hiding overlay.
+### overlayClick — inline panels do NOT use the overlay (Session 4)
+- The calc and category inline panels never show the overlay — `overlayClick()` no longer checks for them.
+- Overlay is only shown for `#cat-sheet` (name form), `#repeat-sheet`, `#recurring-sheet`.
+- In add-page view, overlay shown by sub-sheets only; must hide when they close.
 - `#add-sheet` remains in HTML but is never shown — prevents null-ref errors in `closeAllSheets()`.
+
+### initPanel() critical after every renderContent() in add view (Session 4)
+- `renderContent()` rebuilds `#content` HTML, creating fresh `#calc-inner` and `#cat-inner` elements with `display:none`.
+- `initPanel()` must be called immediately after to re-apply `activePanel` state.
+- Forgetting this = panel disappears after any re-render (e.g. picking a category or adding a photo).
+
+### activePanel must be reset before entering add view (Session 4)
+- Set `activePanel = null` at the start of `openAdd()`, `openAddForDay()`, `openEdit()` before calling `render()`.
+- Then `openCalc()` sets it to `'calc'`. If not reset, stale panel state from a prior session bleeds into the new DOM.
 
 ### Photo storage — base64 in localStorage
 - Storing photos as base64 JPEG in localStorage is acceptable for a local app.
@@ -124,3 +138,6 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **CSS theme override order matters:** The colourful theme block must come AFTER the base styles in `<style>` or the cascade won't work. Never move base `:root` variables below the overrides.
 - **Add-page title uses plain font, not gradient:** `.add-page-header-title` is plain `#111827`. The gradient text styling is on `.header-title` which is only used in main views.
 - **buildAddPage() returns HTML string** — do not try to call `document.getElementById('add-body')` in add-view flow; that element is in the unused `#add-sheet`. The form is rendered into `#content`.
+- **Panel toggle is DOM-only, not re-render** — `openCalc()` and `openCatPanel()` directly set `element.style.display`. Never call `renderContent()` just to switch panels — it causes unnecessary DOM rebuilds and potential focus loss on text fields.
+- **renderCatInner() must be called to update selection** — the cat grid in `#cat-inner` is not rebuilt by `initPanel()` automatically; it's built fresh by `renderCatInner()` each time the cat panel opens. After `pickCatInline()` calls `renderContent()`, `initPanel()` handles it.
+- **Amount 0.00 default** — `fAmount = '0.00'` when adding. `calcInput()` clears it on first digit. `calcBack()` clears in one tap. `calcEqual()` always formats to 2dp. Edit view uses `Number(t.amount).toFixed(2)` so stored amounts also display as 2dp.

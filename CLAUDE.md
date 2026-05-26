@@ -49,8 +49,8 @@ Persisted to `localStorage` under key `'et_v1'`:
     amount: number,       // always positive (expenses only)
     category: string,     // key from CATS or customCats
     note: string,         // short label
-    description: string,  // long-form notes (new Session 3)
-    photo: string | null, // base64 JPEG data URL, max 800px (new Session 3)
+    description: string,  // long-form notes
+    photo: string | null, // base64 JPEG data URL, max 800px
     createdAt: string,    // ISO timestamp
     recurringId: string | null  // links to recurring rule; null if one-off
   }],
@@ -63,11 +63,11 @@ Persisted to `localStorage` under key `'et_v1'`:
     startDate: string,    // "YYYY-MM-DD" — first generated date
     lastGenerated: string // last date an instance was generated up to
   }],
-  customCats: [{          // user-added categories (new Session 3)
+  customCats: [{
     key: string,          // "custom_<uid>"
     label: string,
-    emoji: string,
-    color: string         // hex colour
+    emoji: string,        // auto-assigned '📦'
+    color: string         // auto-assigned from CAT_COLORS palette
   }]
 }
 ```
@@ -95,9 +95,9 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fPhoto` — base64 photo data URL (or null)
 - `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | null`)
 - `calcExpr` — current expression string in the calculator keyboard (e.g. `"3.75+4.95"`)
-- `calcOpen` — boolean; whether the calc keyboard is currently visible (used by `buildAddPage()` to bake `show` class into HTML on re-render)
-- `catAddMode` — whether the add-category inline form is visible in cat-sheet
-- `newCatEmoji, newCatLabel, newCatColor` — new category form state
+- `activePanel` — which panel is visible in the bottom panel area (`'calc' | 'cat' | null`)
+- `catAddMode` — whether the "New Category" name-entry form is open in `#cat-sheet`
+- `newCatLabel` — new category name being typed
 
 ### Key helpers
 - `todayStr()` — current date as "YYYY-MM-DD"
@@ -120,22 +120,33 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `compressImage(dataUrl, cb)` — resizes to max 800px, JPEG 70%, returns via callback
 - `closeAddView()` — closes sub-sheets, resets overlay, sets view=addViewPrev, calls render()
 
-### Calculator keyboard helpers
-- `openCalc()` — sets `calcOpen = true`, shows `#calc-keyboard`, seeds `calcExpr` from `fAmount`
-- `closeCalc()` — sets `calcOpen = false`, hides `#calc-keyboard`
-- `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt` field; shows `= X.XX` preview if expression has operator
-- `calcInput(ch)` — appends character with guard rules (no double operator, no double decimal)
-- `calcBack()` — deletes last character
-- `calcEqual()` — evaluates and collapses expression to result
+### Bottom panel helpers (Session 4)
+- `openCalc()` — sets `activePanel='calc'`, shows `#calc-inner`, hides `#cat-inner`, calls `updateCalcDisplay()`
+- `closeCalc()` — sets `activePanel=null`, hides `#calc-inner`
+- `openCatPanel()` — sets `activePanel='cat'`, hides calc, calls `renderCatInner()`, shows `#cat-inner`
+- `renderCatInner()` — builds category grid HTML into `#cat-inner` (excludes 'other'; adds "Add" tile)
+- `pickCatInline(key)` — sets `fCat`, snaps panel back to calc, calls `renderContent()`
+- `deleteCatInline(key)` — removes custom cat, calls `renderCatInner()` to refresh
+- `initPanel()` — called by `renderContent()` after DOM rebuild; restores panel to `activePanel` state
+- `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt`; shows `= X.XX` preview if expression has operator
+- `calcInput(ch)` — appends character; clears `0.00` default on first digit
+- `calcBack()` — deletes last character; clears `0.00` in one press
+- `calcEqual()` — evaluates and formats result to 2dp
 - `calcOK()` — calls `calcEqual()` then `closeCalc()`
+
+### Category "New Category" sheet helpers (Session 4)
+- `openCatNew()` — sets `catAddMode=true`, renders name form into `#cat-sheet`, shows sheet + overlay
+- `closeCatNew()` — closes sheet, calls `openCatPanel()` to return to inline cat grid
+- `renderCatSheet()` — now ONLY renders the name-entry form inside `#cat-sheet` (no longer renders the grid)
+- `saveCustomCat()` — saves new cat (emoji='📦', color auto from palette), closes sheet, calls `renderCatInner()`
 
 ---
 
-## Categories (16 built-in + custom)
+## Categories (15 selectable + custom + hidden Other)
 
-🍎 Groceries · 🍽️ Eating Out · 🚗 Transport · 🛍️ Shopping · 🏠 Housing · 💡 Utilities · 🎬 Entertain · 💊 Health · ✨ Beauty · 📚 Education · 🐾 Pets · 💪 Fitness · 🎁 Gifts · ✈️ Travel · 💼 Work · ❓ Other
+🍎 Groceries · 🍽️ Eating Out · 🚗 Transport · 🛍️ Shopping · 🏠 Housing · 💡 Utilities · 🎬 Entertain · 💊 Health · ✨ Beauty · 📚 Education · 🐾 Pets · 💪 Fitness · 🎁 Gifts · ✈️ Travel · 💼 Work · _(❓ Other — hidden from picker, used as code fallback only)_
 
-Custom categories stored in `data.customCats[]` with `key: 'custom_<uid>'`. Displayed in the category sheet after built-in ones. Can be deleted (existing transactions keep their category key; `getCat` falls back to 'other' if key not found).
+Custom categories: `key: 'custom_<uid>'`, `emoji: '📦'` (auto), color cycles through `CAT_COLORS[]`. The "Add" tile in the inline category panel opens `#cat-sheet` for name entry only. `getCat()` falls back to 'other' if key not found.
 
 ---
 
@@ -158,7 +169,7 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 
 **Stats** — Month nav (← →, swipe). SVG donut chart. Category breakdown list (dot, emoji, name, bar, %, amount).
 
-**Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats) + title + Save button. Nav bar and FAB hidden. Calculator auto-opens at bottom. Form: Date + 🔁, Amount, Category (tap → cat-sheet), Note, Description + camera. Delete button at bottom for edit mode.
+**Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats) + title + Save button. Nav bar and FAB hidden. Form: Date + 🔁, Amount (tap → calc panel), Category (tap → cat panel), Note, Description + camera. Bottom panel switches between calc and category grid. Delete button at bottom for edit mode.
 
 ---
 
@@ -167,10 +178,10 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 - `#add-sheet` — present in HTML but unused (kept to avoid null refs in closeAllSheets)
 - `#repeat-sheet` — repeat picker (slides over add view, z-index 400, shows overlay)
 - `#recurring-sheet` — manage recurring rules (sheet from Transactions header, z-index 400)
-- `#cat-sheet` — category picker (slides over add view, z-index 400, shows overlay, has pencil to add custom)
-- `#calc-keyboard` — custom calculator keyboard rendered inline inside `buildAddPage()` (not fixed-position); shown/hidden via `display:none/block` using the `.show` class
+- `#cat-sheet` — ONLY used for "New Category" name-entry form (z-index 400, shows overlay); category grid is now inline in `#cat-inner`
+- `#bottom-panel` — inline div at bottom of add form; contains `#calc-inner` (calculator) and `#cat-inner` (category grid); one shown at a time
 - `#photo-action` — Camera/Gallery action sheet (z-index 550, custom iOS-style)
-- Overlay click: smart — checks calc first, then topmost sheet; in add view, overlay only appears for sub-sheets
+- Overlay click: handles repeat/recurring/cat sheets only; inline panels do NOT use the overlay
 
 ### Z-index stack
 | Layer | z-index |
@@ -179,7 +190,6 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 | Add sheet (unused) | 300 |
 | Repeat / Cat / Recurring sheet | 400 |
 | Photo action sheet | 550 |
-| Calculator keyboard | 500 |
 | Toast | 600 |
 
 ---
@@ -211,6 +221,11 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 ### Amount input
 - `type="text" inputmode="none" readonly onclick="openCalc()"` — suppresses native keyboard, opens calculator
 - Do NOT use `type="number"` — prevents expression strings like `3.75+4.95`
+- Defaults to `'0.00'`; cleared on first digit; always formatted to 2dp after `=` or OK
 
-### Add-page spacer
-- Calculator keyboard is inline in the form (not fixed), so no large spacer is needed — a `height:32px` div provides bottom breathing room
+### Bottom panel layout
+- `#bottom-panel` sits inline in `buildAddPage()` below the form fields; `margin-top: 12px`
+- `#calc-inner`: `background: #f3f4f6`, `border-radius: 16px 16px 0 0`, `display:none` by default
+- `#cat-inner`: `background: #fff`, `border-radius: 16px 16px 0 0`, `max-height: 280px`, scrollable
+- Toggle via `openCalc()` / `openCatPanel()` — direct DOM show/hide, no re-render needed
+- `initPanel()` is called after every `renderContent()` to restore state after DOM rebuild
