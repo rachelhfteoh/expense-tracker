@@ -68,7 +68,8 @@ Persisted to `localStorage` under key `'et_v1'`:
     label: string,
     emoji: string,        // auto-assigned '📦'
     color: string         // auto-assigned from CAT_COLORS palette
-  }]
+  }],
+  hiddenCats: [string]    // keys of built-in cats the user has hidden
 }
 ```
 
@@ -87,6 +88,8 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `view` — `'transactions' | 'calendar' | 'stats' | 'add'`
 - `addViewPrev` — view to return to when closing the add page (e.g. `'transactions'`)
 - `txYear, txMon` — month displayed in Transactions tab
+- `txWeekOffset` — week offset for the week strip (0 = current week, negative = past weeks)
+- `txSelDay` — ISO date of selected day in the week strip (default: today)
 - `calYear, calMon` — month displayed in Calendar tab
 - `calSel` — ISO date string of selected calendar day
 - `stYear, stMon` — month displayed in Stats tab
@@ -114,7 +117,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `totalDay(ds)` — sum of expenses for a day
 - `totalMonth(y, m)` — sum of expenses for a month
 - `evalAmount(raw)` — safely evaluates a math expression string (whitelist regex + Function()); returns number or null
-- `getAllCats()` — returns `[...CATS, ...data.customCats]`
+- `getAllCats()` — returns `[...CATS, ...data.customCats]` filtered by `data.hiddenCats`
 - `getCat(key)` — looks up cat in CATS then customCats, falls back to 'other'
 - `syncFormState()` — reads DOM inputs into fDate/fAmount/fNote/fDescription state vars (call before opening any sub-sheet)
 - `compressImage(dataUrl, cb)` — resizes to max 800px, JPEG 70%, returns via callback
@@ -124,9 +127,9 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `openCalc()` — sets `activePanel='calc'`, shows `#calc-inner`, hides `#cat-inner`, calls `updateCalcDisplay()`
 - `closeCalc()` — sets `activePanel=null`, hides `#calc-inner`
 - `openCatPanel()` — sets `activePanel='cat'`, hides calc, calls `renderCatInner()`, shows `#cat-inner`
-- `renderCatInner()` — builds category grid HTML into `#cat-inner` (excludes 'other'; adds "Add" tile)
+- `renderCatInner()` — builds category grid HTML into `#cat-inner` (excludes 'other'; adds "Add" tile; shows ✕ only if category has no tagged transactions)
 - `pickCatInline(key)` — sets `fCat`, snaps panel back to calc, calls `renderContent()`
-- `deleteCatInline(key)` — removes custom cat, calls `renderCatInner()` to refresh
+- `deleteCatInline(key)` — custom cats: removed from `customCats`; built-in cats: added to `hiddenCats`; calls `renderCatInner()`
 - `initPanel()` — called by `renderContent()` after DOM rebuild; restores panel to `activePanel` state
 - `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt`; shows `= X.XX` preview if expression has operator
 - `calcInput(ch)` — appends character; clears `0.00` default on first digit
@@ -140,6 +143,13 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `renderCatSheet()` — now ONLY renders the name-entry form inside `#cat-sheet` (no longer renders the grid)
 - `saveCustomCat()` — saves new cat (emoji='📦', color auto from palette), closes sheet, calls `renderCatInner()`
 
+### Week strip helpers (Session 5)
+- `getTxWeekDays(offset)` — returns 7 ISO dates for the week at offset (0 = current), starting Sunday
+- `renderTxWeekStrip()` — builds strip HTML into `#tx-week-strip`; called by `renderContent()` after transactions HTML set
+- `selectTxDay(ds)` — sets `txSelDay`; syncs `txYear/txMon` if different month; scrolls to `#tx-day-{ds}`
+- `changeTxWeek(dir)` — increments `txWeekOffset`; syncs month if needed
+- `initTxWeekSwipe()` — attaches touch/mouse swipe handlers to the strip (idempotent via `_swipeInit` flag)
+
 ---
 
 ## Categories (15 selectable + custom + hidden Other)
@@ -147,6 +157,10 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 🍎 Groceries · 🍽️ Eating Out · 🚗 Transport · 🛍️ Shopping · 🏠 Housing · 💡 Utilities · 🎬 Entertain · 💊 Health · ✨ Beauty · 📚 Education · 🐾 Pets · 💪 Fitness · 🎁 Gifts · ✈️ Travel · 💼 Work · _(❓ Other — hidden from picker, used as code fallback only)_
 
 Custom categories: `key: 'custom_<uid>'`, `emoji: '📦'` (auto), color cycles through `CAT_COLORS[]`. The "Add" tile in the inline category panel opens `#cat-sheet` for name entry only. `getCat()` falls back to 'other' if key not found.
+
+**Default category** when opening add view: `'groceries'` (not 'other').
+
+**Delete rules:** ✕ button only shown if `data.transactions` has no entry with that category key. Custom cats are removed from `customCats`; built-in cats are added to `hiddenCats`. `getAllCats()` filters out `hiddenCats`.
 
 ---
 
@@ -163,13 +177,21 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 
 ## Views
 
-**Transactions (default)** — Month nav (← →, swipe). Summary bar (Expenses, count). Transactions grouped by date newest first. FAB + to add. Tap row → add view.
+**Transactions (default)** — Month nav (← →, swipe). Week strip (S M T W T F S, swipeable, expense dots, tapping scrolls to day group). Summary bar (Expenses, count). Transactions grouped by date, sorted highest amount first. FAB + to add. Tap row → add view.
 
-**Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions + + button. No FAB (hidden).
+**Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. No FAB (hidden).
 
 **Stats** — Month nav (← →, swipe). SVG donut chart. Category breakdown list (dot, emoji, name, bar, %, amount).
 
-**Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats) + title + Save button. Nav bar and FAB hidden. Form: Date + 🔁, Amount (tap → calc panel), Category (tap → cat panel), Note, Description + camera. Bottom panel switches between calc and category grid. Delete button at bottom for edit mode.
+**Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
+
+### Transaction row layout
+```
+[icon] Category    Note text         RM X.XX
+```
+- `.tx-left` (120px, row): icon circle (42px) + category label (12px grey)
+- `.tx-info` (flex:1): note text (14px bold); falls back to `—` if no note
+- `.tx-right`: amount in red
 
 ---
 
@@ -181,11 +203,13 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 - `#cat-sheet` — ONLY used for "New Category" name-entry form (z-index 400, shows overlay); category grid is now inline in `#cat-inner`
 - `#bottom-panel` — inline div at bottom of add form; contains `#calc-inner` (calculator) and `#cat-inner` (category grid); one shown at a time
 - `#photo-action` — Camera/Gallery action sheet (z-index 550, custom iOS-style)
+- `.add-action-bar` — fixed bottom bar (z-index 50); Save + Delete buttons
 - Overlay click: handles repeat/recurring/cat sheets only; inline panels do NOT use the overlay
 
 ### Z-index stack
 | Layer | z-index |
 |---|---|
+| Add action bar | 50 |
 | Overlay | 200 |
 | Add sheet (unused) | 300 |
 | Repeat / Cat / Recurring sheet | 400 |
@@ -218,6 +242,12 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 - Font: Plus Jakarta Sans (Google Fonts CDN)
 - Safe area: `env(safe-area-inset-top)` top, `env(safe-area-inset-bottom)` bottom
 
+### Form rows (Session 5)
+- All `.form-row` elements: fixed `height: 44px`, `padding: 0 20px`, `box-sizing: border-box`
+- `.amount-input`: `font-size: 15px; font-weight: 700` (slightly larger than other fields but not huge)
+- `.desc-textarea`: `min-height: 90px` for memo typing
+- Repeat button: icon-only (🔁), `width: 34px; height: 34px`, no label text
+
 ### Amount input
 - `type="text" inputmode="none" readonly onclick="openCalc()"` — suppresses native keyboard, opens calculator
 - Do NOT use `type="number"` — prevents expression strings like `3.75+4.95`
@@ -229,3 +259,10 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 - `#cat-inner`: `background: #fff`, `border-radius: 16px 16px 0 0`, `max-height: 280px`, scrollable
 - Toggle via `openCalc()` / `openCatPanel()` — direct DOM show/hide, no re-render needed
 - `initPanel()` is called after every `renderContent()` to restore state after DOM rebuild
+
+### Category grid (inline panel)
+- 4 columns (`cat-grid`, no `cat-grid-3` override)
+- `.cat-item`: `padding: 8px 4px`, `gap: 3px`
+- `.cat-emo`: `font-size: 20px`
+- `.cat-nm`: `font-size: 10px`
+- ✕ delete button only shown when `!usedKeys.has(c.key)` (no tagged transactions)

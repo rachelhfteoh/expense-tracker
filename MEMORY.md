@@ -126,6 +126,33 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - Always compress first (max 800px, 70% quality) to avoid hitting the ~5MB localStorage quota.
 - If localStorage quota is exceeded, the `save()` function will silently fail (no try/catch currently — worth adding in future).
 
+### Transaction layout — category left, note right (Session 5)
+- Rachel wanted category (icon + label) on the left and note text on the right, not stacked.
+- `.tx-left` is now `flex-direction: row`, `width: 120px` — icon (42px) + category label beside it.
+- If no note, shows `—` rather than repeating the category name (which is already on the left).
+- Both Transactions tab and Calendar day panel sort by `amount` descending (highest first).
+
+### Save/Delete button bar — always both visible (Session 5)
+- Rachel wanted both buttons always visible, not just Delete in edit mode.
+- In add mode, Delete = discard (calls `closeAddView()`); in edit mode, Delete = confirm + remove.
+- Fixed bottom bar at z-index 50 (below overlay at 200) — gets dimmed when sheets open.
+- `height: 90px` spacer added at bottom of form to prevent action bar covering the calc panel.
+
+### Category delete rules — tagged categories protected (Session 5)
+- Rachel suggested: categories with tagged transactions cannot be deleted.
+- `renderCatInner()` computes `usedKeys = new Set(data.transactions.map(t => t.category))` and only shows ✕ if `!usedKeys.has(c.key)`.
+- Built-in cats go to `data.hiddenCats[]` (reversible); custom cats are fully removed from `data.customCats[]`.
+- `getAllCats()` filters out `hiddenCats` so hidden built-in cats don't appear in the picker.
+
+### Default category must not be 'other' (Session 5)
+- `fCat = 'other'` was the hardcoded default — but 'other' is a hidden fallback, not a real category.
+- Changed all three init points (`let fCat`, `openAdd()`, `openAddForDay()`) to `'groceries'`.
+
+### Week strip — idempotent swipe init (Session 5)
+- `initTxWeekSwipe()` guards with `strip._swipeInit = true` to prevent duplicate event listeners on each re-render.
+- `renderTxWeekStrip()` is called by `renderContent()` after transactions HTML is set — the `#tx-week-strip` div must exist in the HTML at that point.
+- Week strip uses Sun-first (S M T W T F S) to match the Calendar tab grid.
+
 ---
 
 ## Things to Watch Out For

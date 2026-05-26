@@ -1,15 +1,14 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-Add page has inline bottom panel: tapping Amount shows calculator, tapping Category shows category grid — both in the same space below the form. Amount defaults to 0.00. Not yet tested end-to-end in Safari. No GitHub Pages deploy yet.
+App is functional with polished form UI, restructured transaction layout, week strip on transactions tab, and category delete rules. Tested manually in Safari with real data. No GitHub Pages deploy yet.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Test app fully in Safari — log expenses, test recurring, calendar, stats, calculator, category panel, photo
-2. Fix any bugs found during testing
-3. Deploy to GitHub Pages (PWA apple-touch-icon needed)
+1. Test all flows end-to-end in Safari — recurring, calendar, stats, photo, week strip navigation
+2. Deploy to GitHub Pages (PWA apple-touch-icon needed)
 
 ## Backlog
 - Search / filter transactions
@@ -31,3 +30,13 @@ Nothing in progress.
 ✅ Inline bottom panel — calc and category grid share same panel space; toggle by tapping Amount or Category
 ✅ Amount defaults to 0.00 — clears on first digit; = and OK always format to 2dp
 ✅ "Other" hidden from picker — still used as code fallback; "Add" tile opens name-entry sheet
+✅ Form row heights fixed — all rows 44px fixed height; amount font normalised to 15px/700
+✅ Description textarea enlarged — min-height 90px for memo typing
+✅ Repeat button icon-only — label removed, 🔁 icon only, title attribute for tooltip
+✅ Default category changed to Groceries — was "Other" (hidden fallback), now first real category
+✅ Save/Delete bottom action bar — fixed bar at bottom; Save left, Delete right; both always visible
+✅ Transaction layout restructured — category icon+name on left, note in middle, amount on right
+✅ Sort by amount descending — highest spend first within each day group (Transactions + Calendar)
+✅ Category grid 4 columns — was 3 columns; tiles smaller and phone-friendly
+✅ Category delete rules — only deletable if no transactions tagged; built-in + custom both respect this
+✅ Week strip on Transactions tab — S M T W T F S, today purple, expense dots, swipeable, tapping day scrolls to group
