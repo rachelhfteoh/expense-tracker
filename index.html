@@ -184,7 +184,7 @@
       margin-left: auto;
       font-size: 13px;
       font-weight: 700;
-      color: var(--expense);
+      color: #111827;
     }
 
     .tx-card {
@@ -197,7 +197,7 @@
     .tx-row {
       display: flex;
       align-items: center;
-      padding: 12px 20px;
+      padding: 10px 16px;
       gap: 12px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
@@ -207,13 +207,13 @@
     .tx-row:active { background: #fafafa; }
 
     .tx-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 13px;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 21px;
+      font-size: 16px;
       flex-shrink: 0;
     }
 
@@ -221,15 +221,15 @@
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       flex-shrink: 0;
-      width: 120px;
+      width: 95px;
     }
 
     .tx-info { flex: 1; min-width: 0; }
 
     .tx-note {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--text);
       white-space: nowrap;
@@ -238,7 +238,7 @@
     }
 
     .tx-cat {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-3);
       font-weight: 500;
       white-space: nowrap;
@@ -255,9 +255,9 @@
     }
 
     .tx-amount {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
-      color: var(--expense);
+      color: #111827;
       white-space: nowrap;
     }
 
@@ -543,13 +543,43 @@
 
     .stats-cat-list { background: var(--card); }
 
+    .cd-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      cursor: pointer;
+      gap: 12px;
+    }
+    .cd-row:last-child { border-bottom: none; }
+    .cd-row:active { background: rgba(124,58,237,0.05); }
+    .cd-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #111827;
+      flex: 1;
+      min-width: 0;
+    }
+    .cd-note span:first-child {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cd-row .tx-amount { font-size: 13px; }
+
     .stats-cat-row {
       display: flex;
       align-items: center;
       padding: 11px 20px;
       gap: 10px;
       border-bottom: 1px solid var(--border);
+      cursor: pointer;
     }
+    .stats-cat-row:active { background: rgba(124,58,237,0.06); }
 
     .stats-dot {
       width: 10px;
@@ -919,7 +949,7 @@
     }
     .tx-row { border-bottom-color: rgba(229,231,235,0.7); }
     .tx-row:active { background: rgba(237,233,254,0.4); }
-    .day-header { padding: 12px 20px 6px; }
+    .day-header { padding: 10px 16px 4px; }
     .day-tag { background: #ede9fe; color: #7c3aed; }
 
     /* FAB — purple gradient */
@@ -1463,6 +1493,7 @@ let calSel  = todayStr();
 
 let stYear  = new Date().getFullYear();
 let stMon   = new Date().getMonth();
+let catDetailKey = '';
 
 // Add/edit form state
 let fMode     = 'add'; // 'add' | 'edit'
@@ -1720,10 +1751,11 @@ function render() {
 }
 
 function renderNav() {
-  const isAdd = view === 'add';
-  document.getElementById('nav').style.display = isAdd ? 'none' : '';
-  document.getElementById('fab').style.display = (isAdd || view === 'calendar') ? 'none' : 'flex';
-  if (isAdd) return;
+  const isAdd    = view === 'add';
+  const isDetail = view === 'cat-detail';
+  document.getElementById('nav').style.display = (isAdd || isDetail) ? 'none' : '';
+  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar') ? 'none' : 'flex';
+  if (isAdd || isDetail) return;
   ['transactions','calendar','stats'].forEach(v => {
     document.getElementById('nb-' + v).classList.toggle('active', view === v);
   });
@@ -1733,7 +1765,7 @@ function renderHeader() {
   const el = document.getElementById('header');
 
   if (view === 'add') {
-    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Stats' };
+    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Stats', 'cat-detail': 'Detail' };
     const backLbl = backLabels[addViewPrev] || 'Back';
     el.innerHTML = `
       <div class="header-row">
@@ -1742,6 +1774,23 @@ function renderHeader() {
           ${backLbl}
         </button>
         <span class="add-page-header-title">${fMode === 'add' ? 'New Expense' : 'Edit Expense'}</span>
+        <span style="width:60px;flex-shrink:0"></span>
+      </div>`;
+    return;
+  }
+
+  if (view === 'cat-detail') {
+    const cat = getCat(catDetailKey);
+    el.innerHTML = `
+      <div class="header-row">
+        <button class="add-page-back-btn" onclick="closeCatDetail()">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 1 1 7 7 13"/></svg>
+          Stats
+        </button>
+        <div style="text-align:center;flex:1">
+          <div class="add-page-header-title">${cat.emoji} ${cat.label}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:1px">${MONTHS[stMon]} ${stYear}</div>
+        </div>
         <span style="width:60px;flex-shrink:0"></span>
       </div>`;
     return;
@@ -1789,6 +1838,7 @@ function renderContent() {
   if      (view === 'add')          el.innerHTML = buildAddPage();
   else if (view === 'transactions') el.innerHTML = buildTransactions();
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
+  else if (view === 'cat-detail')   el.innerHTML = buildCatDetail();
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
   if (view === 'transactions') renderTxWeekStrip();
@@ -1797,10 +1847,12 @@ function renderContent() {
 // ── Transactions view ─────────────────────────────────────────────────────────
 
 function buildTransactions() {
-  const txs   = txForMonth(txYear, txMon);
+  const txs   = txForDay(txSelDay);
   const total = txs.reduce((s, t) => s + Number(t.amount), 0);
+  const { y, m, d } = parseDate(txSelDay);
+  const wd = new Date(y, m, d).getDay();
 
-  let html = `<div id="tx-week-strip"></div>
+  let html = `<div id="tx-week-strip" class="week-strip"></div>
   <div class="summary-bar">
     <div class="sum-item">
       <div class="sum-label">Expenses</div>
@@ -1812,42 +1864,30 @@ function buildTransactions() {
     </div>
   </div>`;
 
-  // Group by date
-  const map = {};
-  for (const t of txs) {
-    (map[t.date] = map[t.date] || []).push(t);
-  }
-  const dates = Object.keys(map).sort().reverse();
-
-  if (!dates.length) {
+  if (!txs.length) {
     return html + `<div class="empty">
       <div class="empty-ico">💸</div>
-      <div class="empty-title">No expenses this month</div>
-      <div class="empty-sub">Tap + to log your first expense</div>
+      <div class="empty-title">No expenses on ${WDAYS[wd]}, ${d} ${MONTHS[m]}</div>
+      <div class="empty-sub">Tap + to log an expense</div>
     </div>`;
   }
 
-  for (const ds of dates) {
-    const group = map[ds].sort((a,b) => b.amount - a.amount);
-    const dayTotal = group.reduce((s,t) => s + Number(t.amount), 0);
-    const { y, m, d } = parseDate(ds);
-    const wd = new Date(y, m, d).getDay();
+  const group = txs.slice().sort((a, b) => b.amount - a.amount);
 
-    html += `<div class="day-group" id="tx-day-${ds}">
-      <div class="day-header">
-        <span class="day-num">${d}</span>
-        <span class="day-tag">${WDAYS[wd]}</span>
-        <span class="day-total">${rm(dayTotal)}</span>
-      </div>
-      <div class="tx-card">`;
+  html += `<div class="day-group" id="tx-day-${txSelDay}">
+    <div class="day-header">
+      <span class="day-num">${d}</span>
+      <span class="day-tag">${WDAYS[wd]}</span>
+      <span class="day-total">${rm(total)}</span>
+    </div>
+    <div class="tx-card">`;
 
-    for (const t of group) {
-      const cat = getCat(t.category);
-      html += txRowHtml(t, cat);
-    }
-
-    html += `</div></div>`;
+  for (const t of group) {
+    const cat = getCat(t.category);
+    html += txRowHtml(t, cat);
   }
+
+  html += `</div></div>`;
 
   return html;
 }
@@ -1865,6 +1905,16 @@ function txRowHtml(t, cat) {
     <div class="tx-right">
       <span class="tx-amount">${rm(t.amount)}</span>
     </div>
+  </div>`;
+}
+
+function catDetailRowHtml(t) {
+  return `<div class="cd-row" onclick="openEdit('${t.id}')">
+    <div class="cd-note">
+      <span>${esc(t.note || '—')}</span>
+      ${t.recurringId ? '<span class="tx-recur-badge">🔁</span>' : ''}
+    </div>
+    <span class="tx-amount">${rm(t.amount)}</span>
   </div>`;
 }
 
@@ -1978,7 +2028,7 @@ function buildStats() {
   html += `<div class="stats-cat-list">`;
   for (const s of segs) {
     const pct = total > 0 ? (s.amount / total * 100) : 0;
-    html += `<div class="stats-cat-row">
+    html += `<div class="stats-cat-row" onclick="openCatDetail('${s.key}')">
       <div class="stats-dot" style="background:${s.color}"></div>
       <span class="stats-cat-emoji">${s.emoji}</span>
       <span class="stats-cat-name">${s.label}</span>
@@ -2082,10 +2132,8 @@ function selectTxDay(ds) {
   if (ds > todayStr()) return;
   txSelDay = ds;
   const { y, m } = parseDate(ds);
-  if (y !== txYear || m !== txMon) { txYear = y; txMon = m; renderContent(); return; }
-  renderTxWeekStrip();
-  const el = document.getElementById('tx-day-' + ds);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  txYear = y; txMon = m;
+  renderContent();
 }
 
 function changeTxWeek(dir) {
@@ -2099,8 +2147,8 @@ function changeTxWeek(dir) {
     txSelDay = cur <= td ? cur : td;
   }
   const { y, m } = parseDate(txSelDay);
-  if (y !== txYear || m !== txMon) { txYear = y; txMon = m; render(); return; }
-  renderTxWeekStrip();
+  if (y !== txYear || m !== txMon) { txYear = y; txMon = m; }
+  renderContent();
 }
 
 function initTxWeekSwipe() {
@@ -2123,6 +2171,67 @@ function prevCal() { if (calMon === 0) { calMon = 11; calYear--; } else { calMon
 function nextCal() { if (calMon === 11){ calMon = 0;  calYear++; } else { calMon++; } calSel = isoDate(calYear, calMon, 1); render(); }
 function prevSt()  { if (stMon === 0)  { stMon = 11; stYear--;  } else { stMon--;  } render(); }
 function nextSt()  { if (stMon === 11) { stMon = 0;  stYear++;  } else { stMon++;  } render(); }
+
+// ── Category detail view ───────────────────────────────────────────────────────
+
+function openCatDetail(key) {
+  catDetailKey = key;
+  view = 'cat-detail';
+  render();
+}
+
+function closeCatDetail() {
+  view = 'stats';
+  render();
+}
+
+function buildCatDetail() {
+  const cat  = getCat(catDetailKey);
+  const txs  = txForMonth(stYear, stMon).filter(t => t.category === catDetailKey);
+  const total = txs.reduce((s, t) => s + Number(t.amount), 0);
+
+  let html = `<div class="summary-bar">
+    <div class="sum-item">
+      <div class="sum-label">Total</div>
+      <div class="sum-value red">${rm(total)}</div>
+    </div>
+    <div class="sum-item">
+      <div class="sum-label">Transactions</div>
+      <div class="sum-value">${txs.length}</div>
+    </div>
+  </div>`;
+
+  if (!txs.length) {
+    return html + `<div class="empty">
+      <div class="empty-ico">${cat.emoji}</div>
+      <div class="empty-title">No ${cat.label} expenses</div>
+      <div class="empty-sub">in ${MONTHS[stMon]} ${stYear}</div>
+    </div>`;
+  }
+
+  // Group by date, newest first
+  const map = {};
+  for (const t of txs) (map[t.date] = map[t.date] || []).push(t);
+  const dates = Object.keys(map).sort().reverse();
+
+  for (const ds of dates) {
+    const group = map[ds].slice().sort((a, b) => b.amount - a.amount);
+    const dayTotal = group.reduce((s, t) => s + Number(t.amount), 0);
+    const { y, m, d } = parseDate(ds);
+    const wd = new Date(y, m, d).getDay();
+    html += `<div class="day-group">
+      <div class="day-header">
+        <span class="day-num">${d}</span>
+        <span class="day-tag">${WDAYS[wd]}</span>
+        <span class="day-total">${rm(dayTotal)}</span>
+      </div>
+      <div class="tx-card">`;
+    for (const t of group) html += catDetailRowHtml(t);
+    html += `</div></div>`;
+  }
+
+  return html;
+}
 
 function selectCalDay(ds) {
   calSel = ds;
@@ -2167,7 +2276,7 @@ function initContentSwipe() {
 function openAdd() {
   addViewPrev = view;
   fMode = 'add'; fEditId = null;
-  fDate = view === 'calendar' ? calSel : todayStr();
+  fDate = view === 'calendar' ? calSel : view === 'transactions' ? txSelDay : todayStr();
   fAmount = '0.00'; fCat = 'groceries'; fNote = ''; fRepeat = 'none';
   fDescription = ''; fPhoto = null;
   activePanel = null;
