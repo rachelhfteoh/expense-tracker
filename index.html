@@ -217,6 +217,15 @@
       flex-shrink: 0;
     }
 
+    .tx-left {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      width: 120px;
+    }
+
     .tx-info { flex: 1; min-width: 0; }
 
     .tx-note {
@@ -231,7 +240,10 @@
     .tx-cat {
       font-size: 12px;
       color: var(--text-3);
-      margin-top: 1px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tx-right {
@@ -253,6 +265,78 @@
       font-size: 10px;
       color: var(--text-3);
     }
+
+    /* ── Week strip ── */
+    .week-strip {
+      display: grid;
+      grid-template-columns: 24px repeat(7, 1fr) 24px;
+      gap: 3px;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 18px;
+      padding: 10px 6px 8px;
+      margin: 0 16px 12px;
+      box-shadow: 0 2px 12px rgba(124,58,237,0.08);
+      user-select: none;
+      touch-action: pan-y;
+    }
+    .ws-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .ws-cell.future { cursor: default; }
+    .ws-nav-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 17px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border-radius: 8px;
+      align-self: center;
+    }
+    .ws-nav-btn:disabled { opacity: 0.2; cursor: default; }
+    .ws-nav-btn:not(:disabled):active { color: #7c3aed; }
+    .ws-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #9ca3af;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .ws-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .ws-dot.today {
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      color: #fff;
+      font-weight: 900;
+      box-shadow: 0 3px 10px rgba(124,58,237,0.38);
+    }
+    .ws-dot.past   { background: #f3f4f6; color: #6b7280; }
+    .ws-dot.future { background: #f9fafb; color: #d1d5db; }
+    .ws-dot.selected:not(.today) { background: #ede9fe; color: #7c3aed; font-weight: 800; }
+    .ws-exp-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    .ws-exp-dot.hidden { visibility: hidden; }
 
     /* ── Empty state ── */
     .empty {
@@ -593,9 +677,11 @@
     .form-row {
       display: flex;
       align-items: center;
-      padding: 13px 20px;
+      height: 44px;
+      padding: 0 20px;
       border-bottom: 1px solid var(--border);
       gap: 12px;
+      box-sizing: border-box;
     }
 
     .form-lbl {
@@ -618,25 +704,24 @@
     }
     .form-input::placeholder { color: #d1d5db; font-weight: 400; }
 
-    .amount-input { font-size: 20px; font-weight: 800; }
+    .amount-input { font-size: 15px; font-weight: 700; }
 
     .repeat-trigger {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 2px;
+      justify-content: center;
       background: none;
       border: 1px solid var(--border);
       border-radius: 10px;
       cursor: pointer;
-      padding: 5px 10px;
+      width: 34px;
+      height: 34px;
       color: var(--text-3);
       flex-shrink: 0;
     }
     .repeat-trigger.on { color: var(--expense); border-color: #fca5a5; background: var(--expense-soft); }
     .repeat-trigger:active { opacity: 0.8; }
-    .repeat-trigger-ico { font-size: 16px; }
-    .repeat-trigger-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+    .repeat-trigger-ico { font-size: 16px; line-height: 1; }
 
     /* Category grid */
     .cat-section-label {
@@ -659,8 +744,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: 10px 4px;
+      gap: 3px;
+      padding: 8px 4px;
       border-radius: 13px;
       border: 2px solid transparent;
       cursor: pointer;
@@ -673,7 +758,7 @@
       background: var(--expense-soft);
     }
 
-    .cat-emo { font-size: 22px; }
+    .cat-emo { font-size: 20px; }
     .cat-nm {
       font-size: 10px;
       font-weight: 600;
@@ -1052,6 +1137,49 @@
       -webkit-tap-highlight-color: transparent;
     }
     .add-page-save-btn:active { background: rgba(124,58,237,0.08); }
+
+    .add-action-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      padding: 10px 16px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      z-index: 50;
+    }
+    .add-save-btn {
+      flex: 1;
+      height: 46px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      color: #fff;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 14px rgba(124,58,237,0.28);
+    }
+    .add-save-btn:active { opacity: 0.85; }
+    .add-delete-btn {
+      flex: 1;
+      height: 46px;
+      border-radius: 14px;
+      background: #fff5f5;
+      color: #ef4444;
+      border: 1.5px solid #fca5a5;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-delete-btn:active { opacity: 0.85; }
     .add-page-back-btn {
       background: none;
       border: none;
@@ -1127,7 +1255,7 @@
     .desc-textarea {
       flex: 1; font-size: 14px; font-weight: 500; color: var(--text);
       background: none; border: none; outline: none; font-family: inherit;
-      resize: none; min-height: 52px; line-height: 1.55; padding-top: 1px;
+      resize: none; min-height: 90px; line-height: 1.55; padding-top: 1px;
     }
     .desc-textarea::placeholder { color: #d1d5db; font-weight: 400; }
     .cam-btn {
@@ -1321,11 +1449,13 @@ const MONTHS = ['January','February','March','April','May','June',
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let data = { transactions: [], recurring: [], customCats: [] };
+let data = { transactions: [], recurring: [], customCats: [], hiddenCats: [] };
 let view = 'transactions';
 
-let txYear  = new Date().getFullYear();
-let txMon   = new Date().getMonth();
+let txYear       = new Date().getFullYear();
+let txMon        = new Date().getMonth();
+let txWeekOffset = 0;
+let txSelDay     = todayStr();
 
 let calYear = new Date().getFullYear();
 let calMon  = new Date().getMonth();
@@ -1339,7 +1469,7 @@ let fMode     = 'add'; // 'add' | 'edit'
 let fEditId   = null;
 let fDate     = todayStr();
 let fAmount   = '';
-let fCat      = 'other';
+let fCat      = 'groceries';
 let fNote     = '';
 let fRepeat   = 'none';
 
@@ -1408,7 +1538,8 @@ function addMonths(ds, n) {
 }
 
 function getAllCats() {
-  return [...CATS, ...(data.customCats || [])];
+  const hidden = new Set(data.hiddenCats || []);
+  return [...CATS, ...(data.customCats || [])].filter(c => !hidden.has(c.key));
 }
 
 function getCat(key) {
@@ -1547,6 +1678,7 @@ function load() {
       data.transactions = parsed.transactions || [];
       data.recurring    = parsed.recurring    || [];
       data.customCats   = parsed.customCats   || [];
+      data.hiddenCats   = parsed.hiddenCats   || [];
     }
   } catch(e) {}
   // Backfill new fields on existing transactions
@@ -1610,7 +1742,7 @@ function renderHeader() {
           ${backLbl}
         </button>
         <span class="add-page-header-title">${fMode === 'add' ? 'New Expense' : 'Edit Expense'}</span>
-        <button class="add-page-save-btn" onclick="saveTx()">Save</button>
+        <span style="width:60px;flex-shrink:0"></span>
       </div>`;
     return;
   }
@@ -1659,6 +1791,7 @@ function renderContent() {
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
+  if (view === 'transactions') renderTxWeekStrip();
 }
 
 // ── Transactions view ─────────────────────────────────────────────────────────
@@ -1667,7 +1800,8 @@ function buildTransactions() {
   const txs   = txForMonth(txYear, txMon);
   const total = txs.reduce((s, t) => s + Number(t.amount), 0);
 
-  let html = `<div class="summary-bar">
+  let html = `<div id="tx-week-strip"></div>
+  <div class="summary-bar">
     <div class="sum-item">
       <div class="sum-label">Expenses</div>
       <div class="sum-value red">${rm(total)}</div>
@@ -1694,12 +1828,12 @@ function buildTransactions() {
   }
 
   for (const ds of dates) {
-    const group = map[ds].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    const group = map[ds].sort((a,b) => b.amount - a.amount);
     const dayTotal = group.reduce((s,t) => s + Number(t.amount), 0);
     const { y, m, d } = parseDate(ds);
     const wd = new Date(y, m, d).getDay();
 
-    html += `<div class="day-group">
+    html += `<div class="day-group" id="tx-day-${ds}">
       <div class="day-header">
         <span class="day-num">${d}</span>
         <span class="day-tag">${WDAYS[wd]}</span>
@@ -1720,14 +1854,16 @@ function buildTransactions() {
 
 function txRowHtml(t, cat) {
   return `<div class="tx-row" onclick="openEdit('${t.id}')">
-    <div class="tx-icon" style="background:${cat.color}1a">${cat.emoji}</div>
+    <div class="tx-left">
+      <div class="tx-icon" style="background:${cat.color}1a">${cat.emoji}</div>
+      <div class="tx-cat">${esc(cat.label)}</div>
+    </div>
     <div class="tx-info">
-      <div class="tx-note">${esc(t.note || cat.label)}</div>
-      <div class="tx-cat">${cat.label}</div>
+      <div class="tx-note">${esc(t.note || '—')}</div>
+      ${t.recurringId ? '<span class="tx-recur-badge">🔁 recurring</span>' : ''}
     </div>
     <div class="tx-right">
       <span class="tx-amount">${rm(t.amount)}</span>
-      ${t.recurringId ? '<span class="tx-recur-badge">🔁 recurring</span>' : ''}
     </div>
   </div>`;
 }
@@ -1779,7 +1915,7 @@ function buildCalendar() {
   html += `</div>`;
 
   // Selected day panel
-  const selTxs = txForDay(calSel).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+  const selTxs = txForDay(calSel).sort((a,b) => b.amount - a.amount);
   const { y: sy, m: sm, d: sd } = parseDate(calSel);
   const swday = new Date(sy, sm, sd).getDay();
   const selTotal = selTxs.reduce((s,t) => s + Number(t.amount), 0);
@@ -1892,6 +2028,97 @@ function switchView(v) {
 
 function prevTx()  { if (txMon === 0)  { txMon = 11; txYear--;  } else { txMon--;  } render(); }
 function nextTx()  { if (txMon === 11) { txMon = 0;  txYear++;  } else { txMon++;  } render(); }
+
+// ── Week strip ────────────────────────────────────────────────────────────────
+
+const TX_WK_LABELS = ['S','M','T','W','T','F','S'];
+
+function getTxWeekDays(offset = 0) {
+  const today = new Date();
+  const dow = today.getDay(); // 0 = Sun
+  const sun = new Date(today);
+  sun.setDate(today.getDate() - dow + offset * 7);
+  sun.setHours(12, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sun);
+    d.setDate(sun.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+}
+
+function renderTxWeekStrip() {
+  const strip = document.getElementById('tx-week-strip');
+  if (!strip) return;
+  const week = getTxWeekDays(txWeekOffset);
+  const td = todayStr();
+  const expDays = new Set(data.transactions.map(t => t.date));
+  const atCurrent = txWeekOffset >= 0;
+
+  const cells = week.map((ds, i) => {
+    const dayNum  = parseInt(ds.split('-')[2]);
+    const isToday = ds === td;
+    const isFuture = ds > td;
+    const isSel   = ds === txSelDay;
+    let dotCls  = 'ws-dot' + (isToday ? ' today' : isFuture ? ' future' : ' past') + (isSel ? ' selected' : '');
+    let cellCls = 'ws-cell' + (isFuture ? ' future' : '');
+    const hasExp = expDays.has(ds) && !isFuture;
+    const onclick = !isFuture ? `onclick="selectTxDay('${ds}')"` : '';
+    return `<div class="${cellCls}" ${onclick}>
+      <div class="ws-label">${TX_WK_LABELS[i]}</div>
+      <div class="${dotCls}">${dayNum}</div>
+      <div class="ws-exp-dot${hasExp ? '' : ' hidden'}"></div>
+    </div>`;
+  }).join('');
+
+  strip.innerHTML =
+    `<button class="ws-nav-btn" onclick="changeTxWeek(-1)">‹</button>` +
+    cells +
+    `<button class="ws-nav-btn" onclick="changeTxWeek(1)" ${atCurrent ? 'disabled' : ''}>›</button>`;
+
+  initTxWeekSwipe();
+}
+
+function selectTxDay(ds) {
+  if (ds > todayStr()) return;
+  txSelDay = ds;
+  const { y, m } = parseDate(ds);
+  if (y !== txYear || m !== txMon) { txYear = y; txMon = m; renderContent(); return; }
+  renderTxWeekStrip();
+  const el = document.getElementById('tx-day-' + ds);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function changeTxWeek(dir) {
+  txWeekOffset = Math.min(0, txWeekOffset + dir);
+  const week = getTxWeekDays(txWeekOffset);
+  const td = todayStr();
+  if (txWeekOffset >= 0) {
+    txSelDay = td;
+  } else {
+    const cur = week.find(d => d === txSelDay) ? txSelDay : week[6];
+    txSelDay = cur <= td ? cur : td;
+  }
+  const { y, m } = parseDate(txSelDay);
+  if (y !== txYear || m !== txMon) { txYear = y; txMon = m; render(); return; }
+  renderTxWeekStrip();
+}
+
+function initTxWeekSwipe() {
+  const strip = document.getElementById('tx-week-strip');
+  if (!strip || strip._swipeInit) return;
+  strip._swipeInit = true;
+  let startX = 0;
+  strip.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  strip.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) changeTxWeek(dx > 0 ? -1 : 1);
+  }, { passive: true });
+  strip.addEventListener('mousedown', e => { startX = e.clientX; });
+  strip.addEventListener('mouseup',   e => {
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 40) changeTxWeek(dx > 0 ? -1 : 1);
+  });
+}
 function prevCal() { if (calMon === 0) { calMon = 11; calYear--; } else { calMon--; } calSel = isoDate(calYear, calMon, 1); render(); }
 function nextCal() { if (calMon === 11){ calMon = 0;  calYear++; } else { calMon++; } calSel = isoDate(calYear, calMon, 1); render(); }
 function prevSt()  { if (stMon === 0)  { stMon = 11; stYear--;  } else { stMon--;  } render(); }
@@ -1941,7 +2168,7 @@ function openAdd() {
   addViewPrev = view;
   fMode = 'add'; fEditId = null;
   fDate = view === 'calendar' ? calSel : todayStr();
-  fAmount = '0.00'; fCat = 'other'; fNote = ''; fRepeat = 'none';
+  fAmount = '0.00'; fCat = 'groceries'; fNote = ''; fRepeat = 'none';
   fDescription = ''; fPhoto = null;
   activePanel = null;
   view = 'add';
@@ -1952,7 +2179,7 @@ function openAdd() {
 function openAddForDay(ds) {
   addViewPrev = view;
   fMode = 'add'; fEditId = null;
-  fDate = ds; fAmount = '0.00'; fCat = 'other'; fNote = ''; fRepeat = 'none';
+  fDate = ds; fAmount = '0.00'; fCat = 'groceries'; fNote = ''; fRepeat = 'none';
   fDescription = ''; fPhoto = null;
   activePanel = null;
   view = 'add';
@@ -1986,9 +2213,8 @@ function buildAddPage() {
       <input type="date" class="form-input" id="f-date" value="${fDate}"
         onchange="fDate=this.value" onfocus="closeCalc()">
       ${fMode === 'add' ? `
-      <button class="repeat-trigger ${isRepeatOn ? 'on' : ''}" onclick="openRepeatSheet()">
+      <button class="repeat-trigger ${isRepeatOn ? 'on' : ''}" onclick="openRepeatSheet()" title="${isRepeatOn ? esc(repeatLbl) : 'Repeat'}">
         <span class="repeat-trigger-ico">🔁</span>
-        <span class="repeat-trigger-lbl">${isRepeatOn ? esc(repeatLbl) : 'Repeat'}</span>
       </button>` : ''}
     </div>
     <div class="form-row">
@@ -2054,11 +2280,13 @@ function buildAddPage() {
     <div id="cat-inner"></div>
   </div>`;
 
-  if (fMode === 'edit') {
-    html += `<button class="del-btn" onclick="deleteTx()" style="margin-top:12px">Delete Expense</button>`;
-  }
+  html += `<div style="height:90px"></div>`;
 
-  html += `<div style="height:32px"></div>`;
+  html += `<div class="add-action-bar">
+    <button class="add-save-btn" onclick="saveTx()">Save</button>
+    <button class="add-delete-btn" onclick="deleteTx()">Delete</button>
+  </div>`;
+
   return html;
 }
 
@@ -2139,6 +2367,7 @@ function saveTx() {
 }
 
 function deleteTx() {
+  if (fMode === 'add') { closeAddView(); return; }
   if (!confirm('Delete this expense?')) return;
   data.transactions = data.transactions.filter(t => t.id !== fEditId);
   save();
@@ -2460,13 +2689,14 @@ function renderCatInner() {
   const catEl = document.getElementById('cat-inner');
   if (!catEl) return;
   const cats = getAllCats().filter(c => c.key !== 'other');
-  let html = `<div class="cat-grid cat-grid-3" style="padding:8px 12px 12px">`;
+  const usedKeys = new Set(data.transactions.map(t => t.category));
+  let html = `<div class="cat-grid" style="padding:8px 10px 10px;gap:5px">`;
   for (const c of cats) {
-    const isCustom = !CATS.find(b => b.key === c.key);
+    const canDelete = !usedKeys.has(c.key);
     html += `<div class="cat-item${c.key===fCat?' sel':''}" onclick="pickCatInline('${c.key}')">
       <span class="cat-emo">${c.emoji}</span>
       <span class="cat-nm">${esc(c.label)}</span>
-      ${isCustom ? `<button class="cat-item-del" onclick="event.stopPropagation();deleteCatInline('${c.key}')">✕</button>` : ''}
+      ${canDelete ? `<button class="cat-item-del" onclick="event.stopPropagation();deleteCatInline('${c.key}')">✕</button>` : ''}
     </div>`;
   }
   html += `<div class="cat-item cat-add-tile" onclick="openCatNew()">
@@ -2490,9 +2720,14 @@ function pickCatInline(key) {
 
 function deleteCatInline(key) {
   if (!confirm('Remove this category?')) return;
-  data.customCats = data.customCats.filter(c => c.key !== key);
+  const isCustom = !CATS.find(c => c.key === key);
+  if (isCustom) {
+    data.customCats = data.customCats.filter(c => c.key !== key);
+  } else {
+    data.hiddenCats = [...(data.hiddenCats || []), key];
+  }
   save();
-  if (fCat === key) fCat = 'other';
+  if (fCat === key) fCat = 'groceries';
   renderCatInner();
 }
 
