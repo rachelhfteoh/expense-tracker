@@ -1,14 +1,14 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App is functional with polished form UI, restructured transaction layout, week strip on transactions tab, and category delete rules. Tested manually in Safari with real data. No GitHub Pages deploy yet.
+App is functional with day-filtered transaction view, category detail drill-down from Stats, and compact row styling across all tabs. Tested manually in Safari with real data. No GitHub Pages deploy yet.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Test all flows end-to-end in Safari — recurring, calendar, stats, photo, week strip navigation
-2. Deploy to GitHub Pages (PWA apple-touch-icon needed)
+1. Deploy to GitHub Pages (PWA apple-touch-icon needed)
+2. End-to-end test — recurring, calendar, stats drill-down, photo, week strip navigation
 
 ## Backlog
 - Search / filter transactions
@@ -39,4 +39,8 @@ Nothing in progress.
 ✅ Sort by amount descending — highest spend first within each day group (Transactions + Calendar)
 ✅ Category grid 4 columns — was 3 columns; tiles smaller and phone-friendly
 ✅ Category delete rules — only deletable if no transactions tagged; built-in + custom both respect this
-✅ Week strip on Transactions tab — S M T W T F S, today purple, expense dots, swipeable, tapping day scrolls to group
+✅ Week strip fixed — was vertical due to missing class="week-strip"; now horizontal S M T W T F S
+✅ Day filtering on Transactions tab — tapping a strip day shows only that day's transactions
+✅ FAB date defaults to selected day — adding expense from transactions view uses txSelDay not today
+✅ Category detail view — tapping a Stats category opens full-page breakdown (view='cat-detail')
+✅ Compact row styling — icon 32px, font 13px across category/note/amount, day totals black not red

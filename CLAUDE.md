@@ -85,14 +85,15 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - No build tools, no npm, no bundler
 
 ### Key state variables
-- `view` — `'transactions' | 'calendar' | 'stats' | 'add'`
-- `addViewPrev` — view to return to when closing the add page (e.g. `'transactions'`)
+- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail'`
+- `addViewPrev` — view to return to when closing the add page (e.g. `'transactions'`, `'cat-detail'`)
 - `txYear, txMon` — month displayed in Transactions tab
 - `txWeekOffset` — week offset for the week strip (0 = current week, negative = past weeks)
-- `txSelDay` — ISO date of selected day in the week strip (default: today)
+- `txSelDay` — ISO date of selected day in the week strip (default: today); Transactions tab shows only this day's transactions
 - `calYear, calMon` — month displayed in Calendar tab
 - `calSel` — ISO date string of selected calendar day
 - `stYear, stMon` — month displayed in Stats tab
+- `catDetailKey` — category key currently shown in cat-detail view
 - `fMode, fEditId, fDate, fAmount, fCat, fNote, fRepeat` — add/edit form state
 - `fDescription` — long-form description field state
 - `fPhoto` — base64 photo data URL (or null)
@@ -146,9 +147,15 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 ### Week strip helpers (Session 5)
 - `getTxWeekDays(offset)` — returns 7 ISO dates for the week at offset (0 = current), starting Sunday
 - `renderTxWeekStrip()` — builds strip HTML into `#tx-week-strip`; called by `renderContent()` after transactions HTML set
-- `selectTxDay(ds)` — sets `txSelDay`; syncs `txYear/txMon` if different month; scrolls to `#tx-day-{ds}`
-- `changeTxWeek(dir)` — increments `txWeekOffset`; syncs month if needed
+- `selectTxDay(ds)` — sets `txSelDay`, syncs `txYear/txMon`, calls `renderContent()` — shows only that day's transactions
+- `changeTxWeek(dir)` — increments `txWeekOffset`; syncs month; calls `renderContent()`
 - `initTxWeekSwipe()` — attaches touch/mouse swipe handlers to the strip (idempotent via `_swipeInit` flag)
+
+### Category detail helpers (Session 6)
+- `openCatDetail(key)` — sets `catDetailKey`, `view='cat-detail'`, calls `render()`
+- `closeCatDetail()` — sets `view='stats'`, calls `render()`
+- `buildCatDetail()` — renders transactions for `catDetailKey` in `stYear/stMon`; grouped by date, uses `catDetailRowHtml()`
+- `catDetailRowHtml(t)` — compact row: note + amount only (no icon/category label since category shown in header)
 
 ---
 
@@ -177,21 +184,30 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 
 ## Views
 
-**Transactions (default)** — Month nav (← →, swipe). Week strip (S M T W T F S, swipeable, expense dots, tapping scrolls to day group). Summary bar (Expenses, count). Transactions grouped by date, sorted highest amount first. FAB + to add. Tap row → add view.
+**Transactions (default)** — Month nav (← →, swipe). Week strip (S M T W T F S, swipeable, expense dots). Tapping a day filters list to show only that day's transactions. Summary bar (day expenses, count). FAB + defaults date to `txSelDay`. Tap row → edit view.
 
 **Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. No FAB (hidden).
 
-**Stats** — Month nav (← →, swipe). SVG donut chart. Category breakdown list (dot, emoji, name, bar, %, amount).
+**Stats** — Month nav (← →, swipe). SVG donut chart. Category breakdown list (dot, emoji, name, bar, %, amount). Tap a category row → cat-detail view.
 
-**Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
+**Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats/Detail) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
+
+**Category detail (`view = 'cat-detail'`)** — Full-page. Header: `← Stats` + `[emoji] Category` + month subtitle. Nav/FAB hidden. Summary bar (total, count). Transactions for that category in `stYear/stMon`, grouped by date, compact rows (note + amount only). Tap row → edit (returns to cat-detail after save).
 
 ### Transaction row layout
 ```
 [icon] Category    Note text         RM X.XX
 ```
-- `.tx-left` (120px, row): icon circle (42px) + category label (12px grey)
-- `.tx-info` (flex:1): note text (14px bold); falls back to `—` if no note
-- `.tx-right`: amount in red
+- `.tx-left` (95px, row): icon circle (32px) + category label (13px grey)
+- `.tx-info` (flex:1): note text (13px bold); falls back to `—` if no note
+- `.tx-right`: amount in black (13px bold) — red removed as all entries are expenses
+
+### Cat-detail row layout (`.cd-row`)
+```
+Note text                             RM X.XX
+```
+- Compact: `padding: 10px 16px`, no icon, no category label
+- `.cd-note`: 13px/500, flex:1; `.tx-amount` overridden to 13px within `.cd-row`
 
 ---
 
@@ -228,7 +244,8 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 - **Header title (main views):** gradient text `linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)`
 - **Add-page header title:** plain `#111827` (no gradient) — use `.add-page-header-title` class
 - **Primary UI accent:** `#7c3aed` (violet/purple) — FAB, nav active, save button, today dot, calc operators
-- **Expense amounts:** `#ef4444` red (data colour — unchanged)
+- **Expense amounts in rows:** `#111827` black — red removed since all entries are expenses (no income)
+- **`--expense` variable:** still `#ef4444` red — used for nav active, delete button, repeat badge, calendar dots; do NOT remove
 - **Transaction cards:** `rgba(255,255,255,0.85)` glass, border-radius 16px, margin 0 12px 10px
 - **Summary stat cards:** pink gradient (expenses), purple gradient (count)
 - **Today highlight:** purple gradient (was dark navy)

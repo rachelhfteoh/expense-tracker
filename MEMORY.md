@@ -153,6 +153,29 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `renderTxWeekStrip()` is called by `renderContent()` after transactions HTML is set — the `#tx-week-strip` div must exist in the HTML at that point.
 - Week strip uses Sun-first (S M T W T F S) to match the Calendar tab grid.
 
+### Week strip class missing — was rendering vertically (Session 6)
+- `#tx-week-strip` div was missing `class="week-strip"` so the grid CSS never applied — children stacked vertically.
+- Fix: `<div id="tx-week-strip" class="week-strip">` — both id AND class required.
+- Lesson: when a layout is wrong (vertical vs horizontal), first check if the CSS class is actually applied to the element.
+
+### Transactions tab now filters by selected day, not full month (Session 6)
+- Old: `buildTransactions()` showed all transactions for `txForMonth()`, grouped by date.
+- New: shows only `txForDay(txSelDay)` — one day at a time, selected via the week strip.
+- `selectTxDay()` now just updates state and calls `renderContent()` — no scroll logic needed.
+- `changeTxWeek()` must call `renderContent()` not just `renderTxWeekStrip()` — otherwise the transaction list doesn't update when week changes.
+- FAB date defaults to `txSelDay` not `todayStr()` when opening from transactions view — critical, otherwise expense saves to wrong day.
+
+### Category detail view — new full-page view (Session 6)
+- `view = 'cat-detail'` follows same pattern as `view = 'add'`: nav/FAB hidden, back button in header.
+- `catDetailKey` stores the category being viewed; `stYear/stMon` provides month context.
+- `openEdit()` from cat-detail sets `addViewPrev = 'cat-detail'` — after save, `render()` returns to cat-detail correctly because `renderContent()` handles `view === 'cat-detail'`.
+- `catDetailRowHtml()` is a separate compact renderer (no icon/label) — do NOT reuse `txRowHtml()` for cat-detail rows.
+
+### Amount colour changed to black — `--expense` variable kept (Session 6)
+- `.tx-amount` and `.day-total` changed to `#111827` (black) — red removed since all entries are expenses.
+- `var(--expense)` #ef4444 kept in the CSS variable — still used by nav active, delete button, repeat badge, calendar dots. Do NOT remove or rename it.
+- `.cd-row .tx-amount` scoped override for cat-detail font-size — both are now 13px.
+
 ---
 
 ## Things to Watch Out For
@@ -168,3 +191,5 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Panel toggle is DOM-only, not re-render** — `openCalc()` and `openCatPanel()` directly set `element.style.display`. Never call `renderContent()` just to switch panels — it causes unnecessary DOM rebuilds and potential focus loss on text fields.
 - **renderCatInner() must be called to update selection** — the cat grid in `#cat-inner` is not rebuilt by `initPanel()` automatically; it's built fresh by `renderCatInner()` each time the cat panel opens. After `pickCatInline()` calls `renderContent()`, `initPanel()` handles it.
 - **Amount 0.00 default** — `fAmount = '0.00'` when adding. `calcInput()` clears it on first digit. `calcBack()` clears in one tap. `calcEqual()` always formats to 2dp. Edit view uses `Number(t.amount).toFixed(2)` so stored amounts also display as 2dp.
+- **FAB date must follow txSelDay** — `openAdd()` uses `txSelDay` when `view === 'transactions'`. If this ever reverts to `todayStr()`, expenses added from a past day will silently save to today and not appear.
+- **Theme override `.day-header` padding** — there is a theme CSS override for `.day-header` padding (near bottom of `<style>`). If day headers look too spaced, check this override — the base style alone is not enough.
