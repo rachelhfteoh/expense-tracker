@@ -129,7 +129,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `closeCalc()` — sets `activePanel=null`, hides `#calc-inner`
 - `openCatPanel()` — sets `activePanel='cat'`, hides calc, calls `renderCatInner()`, shows `#cat-inner`
 - `renderCatInner()` — builds category grid HTML into `#cat-inner` (excludes 'other'; adds "Add" tile; shows ✕ only if category has no tagged transactions)
-- `pickCatInline(key)` — sets `fCat`, snaps panel back to calc, calls `renderContent()`
+- `pickCatInline(key)` — sets `fCat`, sets `activePanel=null` (closes panel), calls `renderContent()`
 - `deleteCatInline(key)` — custom cats: removed from `customCats`; built-in cats: added to `hiddenCats`; calls `renderCatInner()`
 - `initPanel()` — called by `renderContent()` after DOM rebuild; restores panel to `activePanel` state
 - `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt`; shows `= X.XX` preview if expression has operator
@@ -142,7 +142,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `openCatNew()` — sets `catAddMode=true`, renders name form into `#cat-sheet`, shows sheet + overlay
 - `closeCatNew()` — closes sheet, calls `openCatPanel()` to return to inline cat grid
 - `renderCatSheet()` — now ONLY renders the name-entry form inside `#cat-sheet` (no longer renders the grid)
-- `saveCustomCat()` — saves new cat (emoji='📦', color auto from palette), closes sheet, calls `renderCatInner()`
+- `saveCustomCat()` — saves new cat (emoji='⭐', color auto from palette), closes sheet, calls `renderCatInner()`
 
 ### Week strip helpers (Session 5)
 - `getTxWeekDays(offset)` — returns 7 ISO dates for the week at offset (0 = current), starting Sunday
@@ -163,22 +163,22 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 
 🍎 Groceries · 🍽️ Eating Out · 🚗 Transport · 🛍️ Shopping · 🏠 Housing · 💡 Utilities · 🎬 Entertain · 💊 Health · ✨ Beauty · 📚 Education · 🐾 Pets · 💪 Fitness · 🎁 Gifts · ✈️ Travel · 💼 Work · _(❓ Other — hidden from picker, used as code fallback only)_
 
-Custom categories: `key: 'custom_<uid>'`, `emoji: '📦'` (auto), color cycles through `CAT_COLORS[]`. The "Add" tile in the inline category panel opens `#cat-sheet` for name entry only. `getCat()` falls back to 'other' if key not found.
+Custom categories: `key: 'custom_<uid>'`, `emoji: '⭐'` (auto), color cycles through `CAT_COLORS[]`. The "Add" tile in the inline category panel opens `#cat-sheet` for name entry only. `getCat()` falls back to 'other' if key not found.
 
-**Default category** when opening add view: `'groceries'` (not 'other').
+**Default category** when opening add view: `''` (empty). Category row shows "Pick a category" placeholder. `saveTx()` shows toast and blocks save if `fCat` is empty.
 
-**Delete rules:** ✕ button only shown if `data.transactions` has no entry with that category key. Custom cats are removed from `customCats`; built-in cats are added to `hiddenCats`. `getAllCats()` filters out `hiddenCats`.
+**Delete rules:** ✕ button only shown if `data.transactions` has no entry with that category key. Custom cats are removed from `customCats`; built-in cats are added to `hiddenCats`. `getAllCats()` filters out `hiddenCats`. If deleted cat was selected (`fCat === key`), resets to `''`.
 
 ---
 
-## Repeat Frequencies (14)
+## Repeat Frequencies (5)
 
-Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Every 4 Weeks · Every Month · End of Month · Every 2 Months · Every 3 Months · Every 4 Months · Every 6 Months · Annually
+Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 
-- "End of Month" snaps `startDate` to last day of selected month
 - `generateRecurring()` runs on every app load; generates missing instances up to today (max 1000 per rule)
 - Editing a recurring instance only changes that instance — rule is unchanged
-- Delete a rule via "🔁 Recurring" button in Transactions header
+- Recurring rules sheet removed from Transactions header (button deleted); existing rules still generate correctly
+- Recurring rows show inline 🔁 icon next to note text only (no "recurring" label)
 
 ---
 
@@ -188,7 +188,7 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 
 **Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. No FAB (hidden).
 
-**Stats** — Month nav (← →, swipe). SVG donut chart. Category breakdown list (dot, emoji, name, bar, %, amount). Tap a category row → cat-detail view.
+**Stats** — Month nav (← →, swipe). SVG donut chart (r=90, sw=28, 300×225 display, viewBox 400×300, overflow=visible). Category name + % labels for segments ≥10% with leader lines. Category breakdown list (dot, emoji, name, bar, %, amount). Tap a category row → cat-detail view.
 
 **Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats/Detail) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
 
@@ -217,7 +217,7 @@ Note text                             RM X.XX
 - `#repeat-sheet` — repeat picker (slides over add view, z-index 400, shows overlay)
 - `#recurring-sheet` — manage recurring rules (sheet from Transactions header, z-index 400)
 - `#cat-sheet` — ONLY used for "New Category" name-entry form (z-index 400, shows overlay); category grid is now inline in `#cat-inner`
-- `#bottom-panel` — inline div at bottom of add form; contains `#calc-inner` (calculator) and `#cat-inner` (category grid); one shown at a time
+- `#bottom-panel` — `position: sticky; bottom: calc(64px + env(safe-area-inset-bottom))` — sticks above the action bar when either panel is open; contains `#calc-inner` and `#cat-inner`; one shown at a time
 - `#photo-action` — Camera/Gallery action sheet (z-index 550, custom iOS-style)
 - `.add-action-bar` — fixed bottom bar (z-index 50); Save + Delete buttons
 - Overlay click: handles repeat/recurring/cat sheets only; inline panels do NOT use the overlay

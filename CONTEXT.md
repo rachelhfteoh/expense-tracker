@@ -1,7 +1,7 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App is functional with day-filtered transaction view, category detail drill-down from Stats, and compact row styling across all tabs. Tested manually in Safari with real data. No GitHub Pages deploy yet.
+App is functional and polished. Number formatting, donut chart labels, blank category default, recurring bug fix, and UI cleanup all complete. Tested in Safari.
 
 ## In Progress
 Nothing in progress.
@@ -33,7 +33,7 @@ Nothing in progress.
 ✅ Form row heights fixed — all rows 44px fixed height; amount font normalised to 15px/700
 ✅ Description textarea enlarged — min-height 90px for memo typing
 ✅ Repeat button icon-only — label removed, 🔁 icon only, title attribute for tooltip
-✅ Default category changed to Groceries — was "Other" (hidden fallback), now first real category
+✅ Default category changed to blank — was Groceries; now blank with "Pick a category" placeholder; Save shows toast if not picked
 ✅ Save/Delete bottom action bar — fixed bar at bottom; Save left, Delete right; both always visible
 ✅ Transaction layout restructured — category icon+name on left, note in middle, amount on right
 ✅ Sort by amount descending — highest spend first within each day group (Transactions + Calendar)
@@ -44,3 +44,14 @@ Nothing in progress.
 ✅ FAB date defaults to selected day — adding expense from transactions view uses txSelDay not today
 ✅ Category detail view — tapping a Stats category opens full-page breakdown (view='cat-detail')
 ✅ Compact row styling — icon 32px, font 13px across category/note/amount, day totals black not red
+✅ Number formatting with commas — rm() uses toLocaleString; RM 7,000.00 not RM 7000.00
+✅ Donut chart labels — category name + % shown for segments ≥10%; leader lines; overflow:visible
+✅ Donut chart enlarged — r=90, sw=28, display 300×225; viewBox 400×300
+✅ Calendar amounts black — cal-day-amt and cal-day-panel-total changed from red to #111827
+✅ Recurring overlay bug fixed — closeRepeatSheet() now hides overlay; no more frozen screen
+✅ Recurring button removed from header — not needed; 🔁 icon inline on recurring transaction rows
+✅ Recurring wording removed — rows show 🔁 icon only (inline with note text)
+✅ Custom category emoji changed to ⭐ — was 📦 brown box
+✅ Repeat frequencies trimmed — only Every Month, Every 3 Months, Every 6 Months, Annually + Nothing
+✅ Calculator no longer auto-opens — opens only when Amount tapped; same for category panel
+✅ Bottom panel sticky — position:sticky keeps calc/cat panel visible above action bar without scrolling

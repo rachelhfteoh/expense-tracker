@@ -176,6 +176,41 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `var(--expense)` #ef4444 kept in the CSS variable — still used by nav active, delete button, repeat badge, calendar dots. Do NOT remove or rename it.
 - `.cd-row .tx-amount` scoped override for cat-detail font-size — both are now 13px.
 
+### Number formatting with commas (Session 7)
+- `rm(n)` changed from `Number(n).toFixed(2)` to `Number(n).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`.
+- This applies everywhere `rm()` is called — rows, totals, calendar, stats, cat-detail — no other changes needed.
+
+### Donut chart labels — SVG font size scaling trap (Session 7)
+- When SVG display size < viewBox size, all coordinates and font sizes scale down proportionally.
+- viewBox 400×300 displayed at 300×225 = 0.75× scale. Font-size 10px SVG → 7.5px on screen (unreadable).
+- Fix: use `overflow="visible"` on the SVG so labels aren't clipped, and set font-size to compensate (e.g. 16px SVG → 12px rendered at 0.75× scale).
+- Labels use `<tspan>` with `dy` offsets for two-line layout (name on top, % below in category colour).
+
+### Blank category default — validation pattern (Session 7)
+- `fCat = ''` in all three init points: `let fCat`, `openAdd()`, `openAddForDay()`.
+- Category row shows "Pick a category" in grey when `fCat` is empty (`selCat = fCat ? getCat(fCat) : null`).
+- `saveTx()` validates: `if (!fCat) { toast('Pick a category'); return; }` — same pattern as amount/date validation.
+- `deleteCatInline()` resets `fCat = ''` (not `'groceries'`) if the deleted cat was selected.
+- Edit mode is unaffected — `fCat = t.category` is always a real key from stored data.
+
+### Recurring overlay freeze bug (Session 7)
+- `pickRepeat(key)` calls `closeRepeatSheet()` then `renderContent()`.
+- `closeRepeatSheet()` was only removing the sheet's `.show` class — it did NOT hide the overlay.
+- Overlay stayed visible and blocked all touches, making the screen appear frozen.
+- Fix: add `if (view === 'add') document.getElementById('overlay').classList.remove('show');` inside `closeRepeatSheet()`.
+- Root cause: `overlayClick()` handled overlay removal for overlay taps, but `pickRepeat()` bypassed it.
+
+### Bottom panel sticky positioning (Session 7)
+- `#bottom-panel` changed to `position: sticky; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 10`.
+- This makes calc/cat panel stick to the bottom of the visible `#content` viewport, above the fixed action bar.
+- No `scrollIntoView` needed — sticky handles it automatically.
+- The 90px spacer div below `#bottom-panel` remains to prevent the action bar covering content when panel is closed.
+
+### Calculator and category panel no longer auto-open (Session 7)
+- Removed `openCalc()` from `openAdd()`, `openAddForDay()`, and `openEdit()`.
+- Both panels now open only on user tap (Amount → calc, Category → cat grid).
+- `pickCatInline()` sets `activePanel = null` after pick (was `'calc'`) — avoids calc snapping back after category selection.
+
 ---
 
 ## Things to Watch Out For
