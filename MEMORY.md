@@ -37,6 +37,28 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - Supports `+`, `−`, `×`, `÷`, preview of running total, `=` to evaluate, OK to confirm.
 - Amount field uses `type="text" inputmode="none" readonly` — this suppresses the native keyboard on iOS.
 
+### Compact form + category sheet (Session 3)
+- Rachel wanted the add form to be compact like a reference app — no visible category grid on screen.
+- Category is a tappable row that opens a separate bottom sheet (`#cat-sheet`).
+- The category sheet has a pencil icon to add custom categories (emoji + name + colour swatch).
+- Custom categories are stored in `data.customCats[]` with key `'custom_<uid>'`.
+
+### Full-page add view instead of bottom sheet (Session 3)
+- Rachel wanted tapping + to open a full page, not slide up a sheet from the bottom.
+- Implemented as `view = 'add'` — the same render loop handles it like any other view.
+- Header switches to: back button (← Trans./Calendar/Stats) | title | Save button.
+- Nav bar and FAB are hidden when `view === 'add'`.
+- Calculator auto-opens (`openCalc()`) immediately when entering the add view.
+- Date, Note, Description inputs have `onfocus="closeCalc()"` so system keyboard can take over when those fields are tapped.
+- A `.add-page-spacer` (290px) sits at the bottom of the form so content is scrollable above the fixed calc keyboard.
+
+### Description + photo (Session 3)
+- Rachel wanted a long-text description field below Note, and a camera button to attach a photo.
+- Description is a `<textarea>` with `resize: none` and auto-grows with content.
+- Camera button opens a custom iOS-style action sheet (`#photo-action`) with Camera / Gallery options.
+- Two hidden `<input type="file">` elements: one with `capture="environment"` (camera), one without (gallery).
+- Photos are compressed to max 800px JPEG 70% via Canvas before storing as base64 in localStorage.
+
 ---
 
 ## Technical Decisions
@@ -53,12 +75,19 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `generateRecurring()` has a 1000-iteration cap per rule to prevent runaway loops for high-frequency rules on large gaps.
 
 ### subSheet state tracks sheet stacking
-- `subSheet` variable (`'repeat' | 'recurring' | null`) tracks which secondary sheet is open above the add sheet.
+- `subSheet` variable (`'repeat' | 'recurring' | 'cat' | null`) tracks which secondary sheet is open.
 - Overlay click is smart: closes only the topmost sheet.
+- In `view === 'add'` mode, the overlay is shown by sub-sheets (cat, repeat) and hidden when they close.
 
 ### renderContent() vs render()
 - `render()` rebuilds everything (header + content + nav).
-- `renderContent()` rebuilds only the content area — used for calendar day selection to avoid re-running initSwipe on the header.
+- `renderContent()` rebuilds only the content area — used for calendar day selection, category pick, repeat pick.
+- After picking a category or repeat frequency in the add view, call `renderContent()` not `render()` (avoids re-running initSwipe).
+
+### syncFormState() must be called before opening any sub-sheet
+- `syncFormState()` reads the live DOM values of date, amount, note, description into JS state.
+- Must be called in `openCatSheet()` and `openRepeatSheet()` before the sub-sheet opens.
+- If skipped, the sub-sheet close + re-render will restore stale state, losing whatever the user typed.
 
 ### evalAmount uses Function() with whitelist — safe for local app
 - `evalAmount(raw)` whitelists input to `/^[\d\.\+\-\*\/\(\)]+$/` before passing to `Function()`.
@@ -69,17 +98,29 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - Use `type="text" inputmode="none"` to support both plain numbers and expressions.
 
 ### overlayClick must check calc keyboard first
-- `#calc-keyboard` sits at z-index 500. When it's open, tapping the overlay behind the add sheet should close the calc only — not close the entire sheet stack.
+- `#calc-keyboard` sits at z-index 500. When it's open, tapping the overlay should close the calc only.
 - Always add `if (calc.show) { closeCalc(); return; }` as the first check in `overlayClick()`.
+
+### Overlay behaviour differs between old sheet flow and add-page view
+- In old sheet flow: overlay shown by main sheet, stays when sub-sheets close (so add-sheet stays dimmed).
+- In add-page view (`view === 'add'`): overlay shown by sub-sheets (cat/repeat), must hide when they close.
+- `closeCatSheet()` always hides the overlay. `overlayClick()` for repeat checks `view === 'add'` before hiding overlay.
+- `#add-sheet` remains in HTML but is never shown — prevents null-ref errors in `closeAllSheets()`.
+
+### Photo storage — base64 in localStorage
+- Storing photos as base64 JPEG in localStorage is acceptable for a local app.
+- Always compress first (max 800px, 70% quality) to avoid hitting the ~5MB localStorage quota.
+- If localStorage quota is exceeded, the `save()` function will silently fail (no try/catch currently — worth adding in future).
 
 ---
 
 ## Things to Watch Out For
 
 - **localStorage is browser-specific.** Always test in Safari — data saved in Safari won't appear in Chrome.
-- **Category grid re-render on pickCat:** Must sync form field values (date, amount, note) into state variables BEFORE calling `renderAddSheet()`, or those fields reset to stale state.
+- **syncFormState() before sub-sheets:** Must sync form field values into state variables BEFORE opening cat-sheet or repeat-sheet, or those fields reset to stale state on re-render.
 - **Sun-Sat calendar column colours:** These rely on CSS `nth-child` selectors — `7n+1` = Sun (col 1), `7n` = Sat (col 7). Don't change the grid column order.
 - **End of month edge case:** Day 0 of month M+2 = last day of month M+1. Use `new Date(y, m+2, 0)` pattern.
-- **Repeat sheet stacks above add sheet:** `#repeat-sheet` has `z-index: 400`, `#add-sheet` has `z-index: 300`. Overlay stays open when repeat sheet closes so add sheet remains visible.
-- **Calc keyboard state:** `calcExpr` and `fAmount` must stay in sync. `openCalc()` seeds `calcExpr` from `fAmount`. `calcInput/calcBack/calcEqual` update both. If `renderAddSheet()` is called while calc is open (e.g. category change), the amount field re-renders from `fAmount` — this is correct.
+- **Calc keyboard state:** `calcExpr` and `fAmount` must stay in sync. `openCalc()` seeds `calcExpr` from `fAmount`. `calcInput/calcBack/calcEqual` update both. After `renderContent()` (e.g. category change), amount field re-renders from `fAmount` — this is correct.
 - **CSS theme override order matters:** The colourful theme block must come AFTER the base styles in `<style>` or the cascade won't work. Never move base `:root` variables below the overrides.
+- **Add-page title uses plain font, not gradient:** `.add-page-header-title` is plain `#111827`. The gradient text styling is on `.header-title` which is only used in main views.
+- **buildAddPage() returns HTML string** — do not try to call `document.getElementById('add-body')` in add-view flow; that element is in the unused `#add-sheet`. The form is rendered into `#content`.
