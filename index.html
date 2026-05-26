@@ -937,21 +937,24 @@
     }
     .summary-bar, .stats-chart-section { animation: fadeUp 0.2s ease both; }
 
-    /* ── Calculator Keyboard ── */
-    #calc-keyboard {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%) translateY(102%);
-      width: 100%;
-      max-width: 430px;
+    /* ── Bottom Panel (calc + cat) ── */
+    #bottom-panel { margin-top: 12px; }
+    #calc-inner {
+      display: none;
       background: #f3f4f6;
-      z-index: 500;
-      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+      border-radius: 16px 16px 0 0;
+      overflow: hidden;
       padding-bottom: var(--safe-bottom);
-      box-shadow: 0 -4px 24px rgba(0,0,0,0.14);
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
     }
-    #calc-keyboard.show { transform: translateX(-50%) translateY(0); }
+    #cat-inner {
+      display: none;
+      background: #fff;
+      border-radius: 16px 16px 0 0;
+      max-height: 280px;
+      overflow-y: auto;
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+    }
 
     .calc-preview {
       display: flex;
@@ -1065,7 +1068,6 @@
       -webkit-tap-highlight-color: transparent;
     }
     .add-page-back-btn:active { background: rgba(124,58,237,0.08); }
-    .add-page-spacer { height: 290px; }
 
     /* ── Category pick row ── */
     #cat-sheet { z-index: 400; }
@@ -1074,36 +1076,39 @@
     .cat-item { position: relative; }
 
     /* ── Add-category form ── */
-    .cat-add-section {
-      padding: 16px 20px;
-      border-bottom: 2px solid var(--border);
-      background: rgba(124,58,237,0.03);
+    .cat-new-form {
+      padding: 28px 24px 24px;
+      display: flex; flex-direction: column; gap: 20px;
     }
-    .cat-add-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    .cat-add-emoji {
-      width: 48px; height: 48px; font-size: 22px; text-align: center;
-      border: 1.5px solid var(--border); border-radius: 12px;
-      background: #fff; outline: none; font-family: inherit;
-    }
-    .cat-add-name {
-      flex: 1; height: 48px; font-size: 15px;
-      border: 1.5px solid var(--border); border-radius: 12px;
-      padding: 0 14px; background: #fff; outline: none;
+    .cat-new-input {
+      width: 100%; height: 52px; font-size: 16px;
+      border: none; border-bottom: 2px solid #e5e7eb;
+      background: transparent; outline: none;
       font-family: inherit; color: var(--text);
+      padding: 0 4px;
+      box-sizing: border-box;
     }
-    .cat-add-name::placeholder { color: #d1d5db; }
-    .color-swatches { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 14px; }
-    .color-swatch {
-      width: 30px; height: 30px; border-radius: 9px;
-      border: 3px solid transparent; cursor: pointer;
-      -webkit-tap-highlight-color: transparent; transition: border-color 0.12s;
-    }
-    .color-swatch.sel { border-color: #1e293b; }
-    .cat-add-save-btn {
-      width: 100%; padding: 12px; border: none; border-radius: 12px;
+    .cat-new-input:focus { border-bottom-color: #7c3aed; }
+    .cat-new-input::placeholder { color: #d1d5db; }
+    .cat-new-save-btn {
+      width: 100%; padding: 16px; border: none; border-radius: 14px;
       background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
-      color: #fff; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
+      color: #fff; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
+    .cat-new-save-btn:active { opacity: 0.85; }
+    .cat-back-btn {
+      background: none; border: none; padding: 4px 0; cursor: pointer;
+      font-size: 15px; color: #7c3aed; font-family: inherit; font-weight: 600;
+      display: flex; align-items: center; gap: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cat-add-tile {
+      border: 2px dashed rgba(124,58,237,0.3) !important;
+      background: rgba(124,58,237,0.04) !important;
+    }
+    .cat-add-tile .cat-emo { color: #7c3aed; font-size: 20px; font-weight: 700; }
+    .cat-add-tile .cat-nm  { color: #7c3aed; font-weight: 600; }
     .cat-item-del {
       position: absolute; top: 4px; right: 4px;
       width: 18px; height: 18px;
@@ -1239,14 +1244,9 @@
 <!-- Category Sheet -->
 <div class="sheet" id="cat-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-header">
+  <div class="sheet-header" id="cat-header">
     <span class="sheet-title">Category</span>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="sheet-x" onclick="toggleCatAdd()" title="Add category">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <button class="sheet-x" onclick="closeCatSheet()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
-    </div>
+    <button class="sheet-x" onclick="closeCatSheet()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
   </div>
   <div class="sheet-body" id="cat-body"></div>
 </div>
@@ -1269,29 +1269,6 @@
 <div id="toast"></div>
 
 <!-- Calculator Keyboard -->
-<div id="calc-keyboard">
-  <div class="calc-preview" id="calc-preview"></div>
-  <div class="calc-grid">
-    <button class="calc-btn calc-op" onclick="calcInput('+')">+</button>
-    <button class="calc-btn calc-op" onclick="calcInput('-')">−</button>
-    <button class="calc-btn calc-op" onclick="calcInput('*')">×</button>
-    <button class="calc-btn calc-op" onclick="calcInput('/')">÷</button>
-    <button class="calc-btn" onclick="calcInput('7')">7</button>
-    <button class="calc-btn" onclick="calcInput('8')">8</button>
-    <button class="calc-btn" onclick="calcInput('9')">9</button>
-    <button class="calc-btn calc-eq" onclick="calcEqual()">=</button>
-    <button class="calc-btn" onclick="calcInput('4')">4</button>
-    <button class="calc-btn" onclick="calcInput('5')">5</button>
-    <button class="calc-btn" onclick="calcInput('6')">6</button>
-    <button class="calc-btn" onclick="calcInput('.')">.</button>
-    <button class="calc-btn" onclick="calcInput('1')">1</button>
-    <button class="calc-btn" onclick="calcInput('2')">2</button>
-    <button class="calc-btn" onclick="calcInput('3')">3</button>
-    <button class="calc-btn calc-back" onclick="calcBack()">⌫</button>
-    <button class="calc-btn calc-zero" onclick="calcInput('0')">0</button>
-    <button class="calc-btn calc-ok" onclick="calcOK()">OK</button>
-  </div>
-</div>
 
 <script>
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -1376,9 +1353,7 @@ let fPhoto       = null; // base64 data URL
 
 // Add-category form state
 let catAddMode  = false;
-let newCatEmoji = '😊';
 let newCatLabel = '';
-let newCatColor = '#10b981';
 
 const CAT_COLORS = [
   '#10b981','#f59e0b','#3b82f6','#ec4899',
@@ -1683,6 +1658,7 @@ function renderContent() {
   else if (view === 'transactions') el.innerHTML = buildTransactions();
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
   else                              el.innerHTML = buildStats();
+  if (view === 'add') initPanel();
 }
 
 // ── Transactions view ─────────────────────────────────────────────────────────
@@ -1965,8 +1941,9 @@ function openAdd() {
   addViewPrev = view;
   fMode = 'add'; fEditId = null;
   fDate = view === 'calendar' ? calSel : todayStr();
-  fAmount = ''; fCat = 'other'; fNote = ''; fRepeat = 'none';
+  fAmount = '0.00'; fCat = 'other'; fNote = ''; fRepeat = 'none';
   fDescription = ''; fPhoto = null;
+  activePanel = null;
   view = 'add';
   render();
   openCalc();
@@ -1975,8 +1952,9 @@ function openAdd() {
 function openAddForDay(ds) {
   addViewPrev = view;
   fMode = 'add'; fEditId = null;
-  fDate = ds; fAmount = ''; fCat = 'other'; fNote = ''; fRepeat = 'none';
+  fDate = ds; fAmount = '0.00'; fCat = 'other'; fNote = ''; fRepeat = 'none';
   fDescription = ''; fPhoto = null;
+  activePanel = null;
   view = 'add';
   render();
   openCalc();
@@ -1987,10 +1965,11 @@ function openEdit(txId) {
   if (!t) return;
   addViewPrev = view;
   fMode = 'edit'; fEditId = txId;
-  fDate = t.date; fAmount = String(t.amount);
+  fDate = t.date; fAmount = Number(t.amount).toFixed(2);
   fCat  = t.category; fNote = t.note || ''; fRepeat = 'none';
   fDescription = t.description || '';
   fPhoto = t.photo || null;
+  activePanel = null;
   view = 'add';
   render();
   openCalc();
@@ -2018,7 +1997,7 @@ function buildAddPage() {
         placeholder="0.00" value="${escAttr(fAmount)}"
         readonly onclick="openCalc()">
     </div>
-    <div class="form-row cat-pick-row" onclick="openCatSheet()">
+    <div class="form-row cat-pick-row" onclick="openCatPanel()">
       <span class="form-lbl">Category</span>
       <span style="font-size:18px;margin-right:6px">${selCat.emoji}</span>
       <span class="form-input" style="color:var(--text);font-weight:600;pointer-events:none">${esc(selCat.label)}</span>
@@ -2048,11 +2027,38 @@ function buildAddPage() {
     </div>`;
   }
 
+  html += `<div id="bottom-panel">
+    <div id="calc-inner">
+      <div class="calc-preview" id="calc-preview"></div>
+      <div class="calc-grid">
+        <button class="calc-btn calc-op" onclick="calcInput('+')">+</button>
+        <button class="calc-btn calc-op" onclick="calcInput('-')">−</button>
+        <button class="calc-btn calc-op" onclick="calcInput('*')">×</button>
+        <button class="calc-btn calc-op" onclick="calcInput('/')">÷</button>
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn calc-eq" onclick="calcEqual()">=</button>
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn" onclick="calcInput('.')">.</button>
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn calc-back" onclick="calcBack()">⌫</button>
+        <button class="calc-btn calc-zero" onclick="calcInput('0')">0</button>
+        <button class="calc-btn calc-ok" onclick="calcOK()">OK</button>
+      </div>
+    </div>
+    <div id="cat-inner"></div>
+  </div>`;
+
   if (fMode === 'edit') {
     html += `<button class="del-btn" onclick="deleteTx()" style="margin-top:12px">Delete Expense</button>`;
   }
 
-  html += `<div class="add-page-spacer"></div>`;
+  html += `<div style="height:32px"></div>`;
   return html;
 }
 
@@ -2238,9 +2244,7 @@ function closeAddView() {
 function openCatSheet() {
   syncFormState();
   catAddMode  = false;
-  newCatEmoji = '😊';
   newCatLabel = '';
-  newCatColor = '#10b981';
   subSheet = 'cat';
   renderCatSheet();
   document.getElementById('overlay').classList.add('show');
@@ -2248,9 +2252,13 @@ function openCatSheet() {
 }
 
 function closeCatSheet() {
+  catAddMode = false;
+  newCatLabel = '';
   document.getElementById('cat-sheet').classList.remove('show');
   document.getElementById('overlay').classList.remove('show');
   subSheet = null;
+  // Return to inline cat panel when dismissing from add view
+  if (view === 'add') openCatPanel();
 }
 
 function pickCatFromSheet(key) {
@@ -2259,79 +2267,66 @@ function pickCatFromSheet(key) {
   renderContent();
 }
 
-function toggleCatAdd() {
-  // Sync inputs before toggling so values aren't lost
-  const emojiEl = document.getElementById('new-cat-emoji');
-  const nameEl  = document.getElementById('new-cat-name');
-  if (emojiEl) newCatEmoji = emojiEl.value;
-  if (nameEl)  newCatLabel = nameEl.value;
-  catAddMode = !catAddMode;
-  renderCatSheet();
+function openCatNew() {
+  newCatLabel = '';
+  catAddMode = true;
+  renderCatSheet(); // builds name-entry form into #cat-sheet body
+  subSheet = 'cat';
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('cat-sheet').classList.add('show');
+}
+
+function closeCatNew() {
+  catAddMode = false;
+  newCatLabel = '';
+  document.getElementById('cat-sheet').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  subSheet = null;
+  // Return to inline cat panel
+  openCatPanel();
 }
 
 function renderCatSheet() {
-  // Sync add-form inputs before re-render to preserve typed values
-  const emojiEl = document.getElementById('new-cat-emoji');
-  const nameEl  = document.getElementById('new-cat-name');
-  if (emojiEl) newCatEmoji = emojiEl.value || newCatEmoji;
-  if (nameEl)  newCatLabel = nameEl.value;
-
-  const all = getAllCats();
-  let html = '';
-
-  if (catAddMode) {
-    html += `<div class="cat-add-section">
-      <div class="cat-add-row">
-        <input type="text" class="cat-add-emoji" id="new-cat-emoji"
-          placeholder="😊" value="${escAttr(newCatEmoji)}" oninput="newCatEmoji=this.value" maxlength="2">
-        <input type="text" class="cat-add-name" id="new-cat-name"
-          placeholder="Category name" value="${escAttr(newCatLabel)}" oninput="newCatLabel=this.value">
-      </div>
-      <div class="color-swatches">
-        ${CAT_COLORS.map(c => `<div class="color-swatch${c===newCatColor?' sel':''}" style="background:${c}" onclick="newCatColor='${c}';renderCatSheet()"></div>`).join('')}
-      </div>
-      <button class="cat-add-save-btn" onclick="saveCustomCat()">Add Category</button>
+  // Only used for the "New Category" name-entry form inside #cat-sheet
+  document.getElementById('cat-header').innerHTML = `
+    <button class="cat-back-btn" onclick="closeCatNew()">
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 1 1 7 7 13"/></svg>
+      Back
+    </button>
+    <span class="sheet-title">New Category</span>
+    <div style="width:48px"></div>`;
+  document.getElementById('cat-body').innerHTML = `
+    <div class="cat-new-form">
+      <input type="text" class="cat-new-input" id="new-cat-name"
+        placeholder="Category Name" value="${escAttr(newCatLabel)}"
+        oninput="newCatLabel=this.value" autocomplete="off">
+      <button class="cat-new-save-btn" onclick="saveCustomCat()">Save</button>
     </div>`;
-  }
-
-  html += `<div class="cat-grid cat-grid-3" style="padding:8px 16px 16px">`;
-  for (const c of all) {
-    const isCustom = !CATS.find(b => b.key === c.key);
-    html += `<div class="cat-item${c.key===fCat?' sel':''}" onclick="pickCatFromSheet('${c.key}')">
-      <span class="cat-emo">${c.emoji}</span>
-      <span class="cat-nm">${esc(c.label)}</span>
-      ${isCustom ? `<button class="cat-item-del" onclick="event.stopPropagation();deleteCustomCat('${c.key}')">✕</button>` : ''}
-    </div>`;
-  }
-  html += `</div>`;
-
-  document.getElementById('cat-body').innerHTML = html;
+  document.getElementById('new-cat-name')?.focus();
 }
 
 function saveCustomCat() {
-  const emojiEl = document.getElementById('new-cat-emoji');
-  const nameEl  = document.getElementById('new-cat-name');
-  const emoji   = (emojiEl?.value || '').trim() || '😊';
-  const label   = (nameEl?.value  || '').trim();
+  const nameEl = document.getElementById('new-cat-name');
+  const label  = (nameEl?.value || newCatLabel).trim();
   if (!label) { toast('Enter a category name'); return; }
 
-  const key = 'custom_' + uid();
-  data.customCats.push({ key, label, emoji, color: newCatColor });
+  const color = CAT_COLORS[data.customCats.length % CAT_COLORS.length];
+  const key   = 'custom_' + uid();
+  data.customCats.push({ key, label, emoji: '📦', color });
   save();
 
   catAddMode  = false;
   newCatLabel = '';
-  newCatEmoji = '😊';
-  renderCatSheet();
+  // Close the name-entry sheet and return to inline cat panel
+  document.getElementById('cat-sheet').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  subSheet = null;
+  activePanel = 'cat';
+  const catEl = document.getElementById('cat-inner');
+  if (catEl) { renderCatInner(); catEl.style.display = 'block'; }
+  const calcEl = document.getElementById('calc-inner');
+  if (calcEl) calcEl.style.display = 'none';
   toast('Category added ✓');
-}
-
-function deleteCustomCat(key) {
-  if (!confirm('Remove this category?')) return;
-  data.customCats = data.customCats.filter(c => c.key !== key);
-  save();
-  if (fCat === key) fCat = 'other';
-  renderCatSheet();
 }
 
 // ── Photo functions ───────────────────────────────────────────────────────────
@@ -2409,9 +2404,6 @@ function closeAllSheets() {
 }
 
 function overlayClick() {
-  if (document.getElementById('calc-keyboard').classList.contains('show')) {
-    closeCalc(); return;
-  }
   if (subSheet === 'repeat') {
     closeRepeatSheet();
     // In add-page view, overlay was shown for the sub-sheet — hide it
@@ -2435,16 +2427,83 @@ function toast(msg) {
 
 // ── Calculator keyboard ───────────────────────────────────────────────────────
 
-let calcExpr = '';
+let calcExpr   = '';
+let activePanel = null; // 'calc' | 'cat' | null
 
 function openCalc() {
   calcExpr = fAmount || '';
-  updateCalcDisplay();
-  document.getElementById('calc-keyboard').classList.add('show');
+  activePanel = 'calc';
+  const calcEl = document.getElementById('calc-inner');
+  const catEl  = document.getElementById('cat-inner');
+  if (calcEl) {
+    if (catEl) catEl.style.display = 'none';
+    calcEl.style.display = 'block';
+    updateCalcDisplay();
+  }
 }
 
 function closeCalc() {
-  document.getElementById('calc-keyboard').classList.remove('show');
+  activePanel = null;
+  const calcEl = document.getElementById('calc-inner');
+  if (calcEl) calcEl.style.display = 'none';
+}
+
+function openCatPanel() {
+  activePanel = 'cat';
+  const calcEl = document.getElementById('calc-inner');
+  const catEl  = document.getElementById('cat-inner');
+  if (calcEl) calcEl.style.display = 'none';
+  if (catEl)  { renderCatInner(); catEl.style.display = 'block'; }
+}
+
+function renderCatInner() {
+  const catEl = document.getElementById('cat-inner');
+  if (!catEl) return;
+  const cats = getAllCats().filter(c => c.key !== 'other');
+  let html = `<div class="cat-grid cat-grid-3" style="padding:8px 12px 12px">`;
+  for (const c of cats) {
+    const isCustom = !CATS.find(b => b.key === c.key);
+    html += `<div class="cat-item${c.key===fCat?' sel':''}" onclick="pickCatInline('${c.key}')">
+      <span class="cat-emo">${c.emoji}</span>
+      <span class="cat-nm">${esc(c.label)}</span>
+      ${isCustom ? `<button class="cat-item-del" onclick="event.stopPropagation();deleteCatInline('${c.key}')">✕</button>` : ''}
+    </div>`;
+  }
+  html += `<div class="cat-item cat-add-tile" onclick="openCatNew()">
+    <span class="cat-emo">+</span>
+    <span class="cat-nm">Add</span>
+  </div></div>`;
+  catEl.innerHTML = html;
+}
+
+function pickCatInline(key) {
+  fCat = key;
+  // Snap back to calc so user can continue entering amount
+  activePanel = 'calc';
+  const catEl  = document.getElementById('cat-inner');
+  const calcEl = document.getElementById('calc-inner');
+  if (catEl)  catEl.style.display  = 'none';
+  if (calcEl) calcEl.style.display = 'block';
+  // Rebuild category row to show new selection
+  renderContent();
+}
+
+function deleteCatInline(key) {
+  if (!confirm('Remove this category?')) return;
+  data.customCats = data.customCats.filter(c => c.key !== key);
+  save();
+  if (fCat === key) fCat = 'other';
+  renderCatInner();
+}
+
+function initPanel() {
+  if (activePanel === 'calc') {
+    const el = document.getElementById('calc-inner');
+    if (el) { el.style.display = 'block'; updateCalcDisplay(); }
+  } else if (activePanel === 'cat') {
+    const el = document.getElementById('cat-inner');
+    if (el) { renderCatInner(); el.style.display = 'block'; }
+  }
 }
 
 function hasCalcOperator(s) {
@@ -2463,6 +2522,8 @@ function updateCalcDisplay() {
 
 function calcInput(ch) {
   const isOp = c => ['+', '-', '*', '/'].includes(c);
+  // Clear the default 0.00 when user starts typing a digit
+  if (calcExpr === '0.00' && !isOp(ch)) calcExpr = '';
   const last = calcExpr.slice(-1);
   if (isOp(ch) && isOp(last)) {
     calcExpr = calcExpr.slice(0, -1) + ch;
@@ -2480,6 +2541,8 @@ function calcInput(ch) {
 }
 
 function calcBack() {
+  // Pressing backspace on the default value resets to empty
+  if (calcExpr === '0.00') { calcExpr = ''; fAmount = ''; updateCalcDisplay(); return; }
   calcExpr = calcExpr.slice(0, -1);
   fAmount = calcExpr;
   updateCalcDisplay();
@@ -2488,7 +2551,7 @@ function calcBack() {
 function calcEqual() {
   const result = evalAmount(calcExpr);
   if (result !== null) {
-    calcExpr = String(result);
+    calcExpr = result.toFixed(2);
     fAmount = calcExpr;
     updateCalcDisplay();
   }

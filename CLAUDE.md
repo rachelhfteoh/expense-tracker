@@ -95,6 +95,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fPhoto` — base64 photo data URL (or null)
 - `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | null`)
 - `calcExpr` — current expression string in the calculator keyboard (e.g. `"3.75+4.95"`)
+- `calcOpen` — boolean; whether the calc keyboard is currently visible (used by `buildAddPage()` to bake `show` class into HTML on re-render)
 - `catAddMode` — whether the add-category inline form is visible in cat-sheet
 - `newCatEmoji, newCatLabel, newCatColor` — new category form state
 
@@ -120,8 +121,8 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `closeAddView()` — closes sub-sheets, resets overlay, sets view=addViewPrev, calls render()
 
 ### Calculator keyboard helpers
-- `openCalc()` — shows `#calc-keyboard`, seeds `calcExpr` from `fAmount`
-- `closeCalc()` — hides `#calc-keyboard`
+- `openCalc()` — sets `calcOpen = true`, shows `#calc-keyboard`, seeds `calcExpr` from `fAmount`
+- `closeCalc()` — sets `calcOpen = false`, hides `#calc-keyboard`
 - `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt` field; shows `= X.XX` preview if expression has operator
 - `calcInput(ch)` — appends character with guard rules (no double operator, no double decimal)
 - `calcBack()` — deletes last character
@@ -167,7 +168,7 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 - `#repeat-sheet` — repeat picker (slides over add view, z-index 400, shows overlay)
 - `#recurring-sheet` — manage recurring rules (sheet from Transactions header, z-index 400)
 - `#cat-sheet` — category picker (slides over add view, z-index 400, shows overlay, has pencil to add custom)
-- `#calc-keyboard` — custom calculator keyboard (z-index 500, fixed at bottom, auto-shown on add view entry)
+- `#calc-keyboard` — custom calculator keyboard rendered inline inside `buildAddPage()` (not fixed-position); shown/hidden via `display:none/block` using the `.show` class
 - `#photo-action` — Camera/Gallery action sheet (z-index 550, custom iOS-style)
 - Overlay click: smart — checks calc first, then topmost sheet; in add view, overlay only appears for sub-sheets
 
@@ -212,4 +213,4 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 - Do NOT use `type="number"` — prevents expression strings like `3.75+4.95`
 
 ### Add-page spacer
-- `.add-page-spacer` (height: 290px) sits at the bottom of `buildAddPage()` so content is visible above the fixed calculator keyboard
+- Calculator keyboard is inline in the form (not fixed), so no large spacer is needed — a `height:32px` div provides bottom breathing room
