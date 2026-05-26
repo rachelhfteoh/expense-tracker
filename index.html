@@ -273,7 +273,6 @@
       border-radius: 28px;
       background: var(--expense);
       color: #fff;
-      font-size: 28px;
       border: none;
       cursor: pointer;
       box-shadow: 0 4px 18px rgba(239,68,68,0.38);
@@ -421,9 +420,9 @@
     }
 
     .cal-add-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: 15px;
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
       background: var(--expense);
       color: #fff;
       border: none;
@@ -490,14 +489,14 @@
 
     .stats-bar-wrap {
       width: 64px;
-      height: 4px;
+      height: 6px;
       background: #e5e7eb;
-      border-radius: 2px;
+      border-radius: 3px;
       overflow: hidden;
       flex-shrink: 0;
     }
 
-    .stats-bar { height: 100%; border-radius: 2px; }
+    .stats-bar { height: 100%; border-radius: 3px; }
 
     .stats-pct {
       font-size: 11px;
@@ -570,9 +569,9 @@
     .sheet-title { font-size: 16px; font-weight: 700; }
 
     .sheet-x {
-      width: 28px;
-      height: 28px;
-      border-radius: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
       background: #f3f4f6;
       border: none;
       cursor: pointer;
@@ -580,8 +579,7 @@
       align-items: center;
       justify-content: center;
       color: var(--text-2);
-      font-size: 15px;
-      font-family: inherit;
+      flex-shrink: 0;
     }
 
     .sheet-body {
@@ -775,6 +773,257 @@
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+    /* ══ COLOURFUL THEME — matches Habit Tracker aesthetic ══ */
+
+    html, body { background: linear-gradient(150deg, #fdf4ff 0%, #eef2ff 45%, #f0fdfa 100%); }
+    #app { background: transparent; }
+
+    #header {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom-color: rgba(124,58,237,0.12);
+    }
+
+    #nav {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top-color: rgba(124,58,237,0.12);
+    }
+
+    .header-title {
+      font-size: 20px;
+      background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Summary stats — colourful pastel cards */
+    .summary-bar {
+      background: transparent;
+      padding: 12px 14px;
+      gap: 10px;
+      border-bottom: none;
+    }
+    .sum-item {
+      border-left: none !important;
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+    }
+    .sum-item:nth-child(1) { background: linear-gradient(135deg, #fce7f3 0%, #fda4af 100%); }
+    .sum-item:nth-child(1) .sum-value { color: #be185d; }
+    .sum-item:nth-child(2) { background: linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%); }
+    .sum-item:nth-child(2) .sum-value { color: #6d28d9; }
+    .sum-item:only-child  { background: linear-gradient(135deg, #fce7f3 0%, #fda4af 100%); }
+    .sum-item:only-child .sum-value { color: #be185d; }
+    .sum-label { color: rgba(0,0,0,0.42); }
+    .sum-value.red { color: inherit !important; }
+
+    /* Transaction cards — glass */
+    .tx-card {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-top: none; border-bottom: none;
+      margin: 0 12px 10px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 14px rgba(99,102,241,0.09);
+    }
+    .tx-row { border-bottom-color: rgba(229,231,235,0.7); }
+    .tx-row:active { background: rgba(237,233,254,0.4); }
+    .day-header { padding: 12px 20px 6px; }
+    .day-tag { background: #ede9fe; color: #7c3aed; }
+
+    /* FAB — purple gradient */
+    #fab {
+      background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+      box-shadow: 0 4px 20px rgba(124,58,237,0.45);
+    }
+
+    /* Nav active — purple */
+    .nav-btn.active .nav-ico { color: #7c3aed; }
+    .nav-btn.active .nav-lbl { color: #7c3aed; }
+
+    /* Month nav buttons */
+    .mnav-btn { background: rgba(124,58,237,0.07); }
+    .mnav-btn:active { background: rgba(124,58,237,0.15); }
+
+    /* Save button — purple gradient */
+    .save-btn {
+      background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+      box-shadow: 0 4px 14px rgba(124,58,237,0.32);
+    }
+
+    /* Calendar — glass panels */
+    .cal-week-header {
+      background: rgba(255,255,255,0.85);
+      border-bottom-color: rgba(229,231,235,0.7);
+    }
+    .cal-grid { background: rgba(255,255,255,0.75); }
+    .cal-cell { border-color: rgba(229,231,235,0.55); }
+    .cal-cell:active { background: rgba(237,233,254,0.4); }
+    .cal-cell.is-today .cal-cnum-wrap {
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      box-shadow: 0 3px 8px rgba(124,58,237,0.38);
+    }
+    .cal-day-panel {
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(124,58,237,0.15);
+    }
+    .cal-add-btn {
+      background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+      box-shadow: 0 3px 10px rgba(124,58,237,0.35);
+    }
+
+    /* Category selection — purple */
+    .cat-item.sel { border-color: #7c3aed; background: #ede9fe; }
+    .cat-item.sel .cat-nm { color: #7c3aed; }
+    .repeat-trigger.on { color: #7c3aed; border-color: #c4b5fd; background: #ede9fe; }
+
+    /* Repeat / recurring sheets */
+    .rep-option.sel { color: #7c3aed; }
+    .rep-check { color: #7c3aed; }
+    .rule-del:active { color: #7c3aed; }
+
+    /* Stats */
+    .stats-chart-section {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .stats-cat-list { background: rgba(255,255,255,0.82); }
+    .stats-cat-row { border-bottom-color: rgba(229,231,235,0.7); }
+    .stats-total-value { color: #7c3aed; }
+
+    /* Sheets */
+    .sheet { background: rgba(255,255,255,0.97); }
+    .sheet-header { border-bottom-color: rgba(229,231,235,0.7); }
+
+    /* Empty state */
+    .empty-title { color: #7c3aed; }
+
+    /* ── Nav active indicator ── */
+    .nav-btn { position: relative; }
+    .nav-btn.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 30%;
+      right: 30%;
+      height: 2px;
+      background: #7c3aed;
+      border-radius: 0 0 2px 2px;
+    }
+
+    /* ── Transitions ── */
+    .nav-ico, .nav-lbl { transition: color 0.18s; }
+    .cat-item { transition: border-color 0.12s ease, background 0.12s ease; }
+
+    /* ── Typography refinements ── */
+    .amount-input { letter-spacing: -0.5px; }
+    .stats-total-value { letter-spacing: -0.5px; }
+    .sum-value { letter-spacing: -0.3px; }
+    .tx-amount { letter-spacing: -0.2px; }
+
+    /* ── Content fade-in ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .summary-bar, .stats-chart-section { animation: fadeUp 0.2s ease both; }
+
+    /* ── Calculator Keyboard ── */
+    #calc-keyboard {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(102%);
+      width: 100%;
+      max-width: 430px;
+      background: #f3f4f6;
+      z-index: 500;
+      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: var(--safe-bottom);
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.14);
+    }
+    #calc-keyboard.show { transform: translateX(-50%) translateY(0); }
+
+    .calc-preview {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 6px 18px 4px;
+      min-height: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #7c3aed;
+      background: rgba(255,255,255,0.6);
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #d1d5db;
+    }
+
+    .calc-btn {
+      background: #ffffff;
+      border: none;
+      font-size: 22px;
+      font-weight: 400;
+      padding: 17px 8px;
+      cursor: pointer;
+      font-family: inherit;
+      color: #1e1b4b;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.08s;
+      line-height: 1;
+      user-select: none;
+    }
+    .calc-btn:active { background: #e5e7eb; }
+
+    .calc-op {
+      background: #f5f3ff;
+      color: #7c3aed;
+      font-weight: 700;
+      font-size: 20px;
+    }
+    .calc-op:active { background: #ede9fe; }
+
+    .calc-eq {
+      background: #ede9fe;
+      color: #7c3aed;
+      font-weight: 800;
+    }
+    .calc-eq:active { background: #ddd6fe; }
+
+    .calc-back {
+      background: #f9fafb;
+      color: #6b7280;
+      font-size: 18px;
+    }
+    .calc-back:active { background: #f3f4f6; }
+
+    .calc-zero { grid-column: span 3; }
+
+    .calc-ok {
+      background: var(--expense);
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .calc-ok:active { background: #dc2626; }
+
+    .amount-input { cursor: pointer; }
+
     @media (max-width: 380px) {
       .cat-grid { gap: 4px; padding: 6px 12px 10px; }
       .cat-emo { font-size: 19px; }
@@ -808,7 +1057,9 @@
   </nav>
 </div>
 
-<button id="fab" onclick="openAdd()">+</button>
+<button id="fab" onclick="openAdd()">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
 
 <div id="overlay" onclick="overlayClick()"></div>
 
@@ -817,7 +1068,7 @@
   <div class="sheet-handle"></div>
   <div class="sheet-header">
     <span class="sheet-title" id="add-title">New Expense</span>
-    <button class="sheet-x" onclick="closeAllSheets()">✕</button>
+    <button class="sheet-x" onclick="closeAllSheets()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
   </div>
   <div class="sheet-body" id="add-body"></div>
 </div>
@@ -827,7 +1078,7 @@
   <div class="sheet-handle"></div>
   <div class="sheet-header">
     <span class="sheet-title">Repeat</span>
-    <button class="sheet-x" onclick="closeRepeatSheet()">✕</button>
+    <button class="sheet-x" onclick="closeRepeatSheet()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
   </div>
   <div class="sheet-body" id="repeat-body"></div>
 </div>
@@ -837,12 +1088,37 @@
   <div class="sheet-handle"></div>
   <div class="sheet-header">
     <span class="sheet-title">Recurring Expenses</span>
-    <button class="sheet-x" onclick="closeRecurringSheet()">✕</button>
+    <button class="sheet-x" onclick="closeRecurringSheet()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
   </div>
   <div class="sheet-body" id="recurring-body"></div>
 </div>
 
 <div id="toast"></div>
+
+<!-- Calculator Keyboard -->
+<div id="calc-keyboard">
+  <div class="calc-preview" id="calc-preview"></div>
+  <div class="calc-grid">
+    <button class="calc-btn calc-op" onclick="calcInput('+')">+</button>
+    <button class="calc-btn calc-op" onclick="calcInput('-')">−</button>
+    <button class="calc-btn calc-op" onclick="calcInput('*')">×</button>
+    <button class="calc-btn calc-op" onclick="calcInput('/')">÷</button>
+    <button class="calc-btn" onclick="calcInput('7')">7</button>
+    <button class="calc-btn" onclick="calcInput('8')">8</button>
+    <button class="calc-btn" onclick="calcInput('9')">9</button>
+    <button class="calc-btn calc-eq" onclick="calcEqual()">=</button>
+    <button class="calc-btn" onclick="calcInput('4')">4</button>
+    <button class="calc-btn" onclick="calcInput('5')">5</button>
+    <button class="calc-btn" onclick="calcInput('6')">6</button>
+    <button class="calc-btn" onclick="calcInput('.')">.</button>
+    <button class="calc-btn" onclick="calcInput('1')">1</button>
+    <button class="calc-btn" onclick="calcInput('2')">2</button>
+    <button class="calc-btn" onclick="calcInput('3')">3</button>
+    <button class="calc-btn calc-back" onclick="calcBack()">⌫</button>
+    <button class="calc-btn calc-zero" onclick="calcInput('0')">0</button>
+    <button class="calc-btn calc-ok" onclick="calcOK()">OK</button>
+  </div>
+</div>
 
 <script>
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -968,6 +1244,29 @@ function addMonths(ds, n) {
 
 function getCat(key) {
   return CAT[key] || CAT['other'];
+}
+
+function evalAmount(raw) {
+  const s = String(raw).replace(/\s/g, '');
+  if (!s) return null;
+  if (/^\d*\.?\d*$/.test(s)) return parseFloat(s) || null;
+  // Whitelist: only digits, decimals, and basic operators
+  if (!/^[\d\.\+\-\*\/\(\)]+$/.test(s)) return null;
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = Function('"use strict"; return (' + s + ')')();
+    if (typeof result === 'number' && isFinite(result) && result > 0)
+      return parseFloat(result.toFixed(2));
+  } catch(e) {}
+  return null;
+}
+
+function resolveAmount(el) {
+  const result = evalAmount(el.value);
+  if (result !== null) {
+    fAmount = String(result);
+    el.value = fAmount;
+  }
 }
 
 function esc(s) {
@@ -1475,9 +1774,9 @@ function renderAddSheet() {
     </div>
     <div class="form-row">
       <span class="form-lbl">Amount</span>
-      <input type="number" inputmode="decimal" class="form-input amount-input" id="f-amt"
+      <input type="text" inputmode="none" class="form-input amount-input" id="f-amt"
         placeholder="0.00" value="${escAttr(fAmount)}"
-        oninput="fAmount=this.value">
+        readonly onclick="openCalc()">
     </div>
     <div class="cat-section-label">Category</div>
     <div class="cat-grid">`;
@@ -1520,9 +1819,13 @@ function saveTx() {
   const da = document.getElementById('f-date');
   const am = document.getElementById('f-amt');
   const no = document.getElementById('f-note');
-  if (da) fDate   = da.value;
-  if (am) fAmount = am.value;
-  if (no) fNote   = no.value;
+  if (da) fDate = da.value;
+  if (am) {
+    const evaluated = evalAmount(am.value);
+    fAmount = evaluated !== null ? String(evaluated) : am.value;
+    am.value = fAmount;
+  }
+  if (no) fNote = no.value;
 
   if (!fAmount || isNaN(Number(fAmount)) || Number(fAmount) <= 0) {
     toast('Enter a valid amount'); return;
@@ -1667,9 +1970,13 @@ function closeAllSheets() {
   document.getElementById('overlay').classList.remove('show');
   ['add-sheet','repeat-sheet','recurring-sheet'].forEach(hideSheet);
   subSheet = null;
+  closeCalc();
 }
 
 function overlayClick() {
+  if (document.getElementById('calc-keyboard').classList.contains('show')) {
+    closeCalc(); return;
+  }
   if (subSheet === 'repeat') { closeRepeatSheet(); }
   else if (subSheet === 'recurring') { closeRecurringSheet(); document.getElementById('overlay').classList.remove('show'); }
   else { closeAllSheets(); }
@@ -1684,6 +1991,72 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── Calculator keyboard ───────────────────────────────────────────────────────
+
+let calcExpr = '';
+
+function openCalc() {
+  calcExpr = fAmount || '';
+  updateCalcDisplay();
+  document.getElementById('calc-keyboard').classList.add('show');
+}
+
+function closeCalc() {
+  document.getElementById('calc-keyboard').classList.remove('show');
+}
+
+function hasCalcOperator(s) {
+  return /[+*/]/.test(s) || (s.length > 1 && s.slice(1).includes('-'));
+}
+
+function updateCalcDisplay() {
+  const el = document.getElementById('f-amt');
+  if (el) el.value = calcExpr || '';
+  const preview = document.getElementById('calc-preview');
+  if (!preview) return;
+  const result = evalAmount(calcExpr);
+  preview.textContent = (result !== null && hasCalcOperator(calcExpr))
+    ? '= ' + result.toFixed(2) : '';
+}
+
+function calcInput(ch) {
+  const isOp = c => ['+', '-', '*', '/'].includes(c);
+  const last = calcExpr.slice(-1);
+  if (isOp(ch) && isOp(last)) {
+    calcExpr = calcExpr.slice(0, -1) + ch;
+  } else if (!calcExpr && isOp(ch) && ch !== '-') {
+    return;
+  } else if (ch === '.') {
+    const parts = calcExpr.split(/[+\-*/]/);
+    if (parts[parts.length - 1].includes('.')) return;
+    calcExpr += ch;
+  } else {
+    calcExpr += ch;
+  }
+  fAmount = calcExpr;
+  updateCalcDisplay();
+}
+
+function calcBack() {
+  calcExpr = calcExpr.slice(0, -1);
+  fAmount = calcExpr;
+  updateCalcDisplay();
+}
+
+function calcEqual() {
+  const result = evalAmount(calcExpr);
+  if (result !== null) {
+    calcExpr = String(result);
+    fAmount = calcExpr;
+    updateCalcDisplay();
+  }
+}
+
+function calcOK() {
+  calcEqual();
+  closeCalc();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
