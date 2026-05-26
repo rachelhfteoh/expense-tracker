@@ -83,6 +83,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `stYear, stMon` — month displayed in Stats tab
 - `fMode, fEditId, fDate, fAmount, fCat, fNote, fRepeat` — add/edit form state
 - `subSheet` — which secondary sheet is stacked above the add sheet (`'repeat' | 'recurring' | null`)
+- `calcExpr` — current expression string in the calculator keyboard (e.g. `"3.75+4.95"`)
 
 ### Key helpers
 - `todayStr()` — current date as "YYYY-MM-DD"
@@ -98,6 +99,17 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `txForDay(ds)` — filter transactions by exact date
 - `totalDay(ds)` — sum of expenses for a day
 - `totalMonth(y, m)` — sum of expenses for a month
+- `evalAmount(raw)` — safely evaluates a math expression string (whitelist regex + Function()); returns number or null
+- `resolveAmount(el)` — evaluates input value and updates field (used in saveTx fallback)
+
+### Calculator keyboard helpers
+- `openCalc()` — shows `#calc-keyboard`, seeds `calcExpr` from `fAmount`
+- `closeCalc()` — hides `#calc-keyboard`
+- `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt` field; shows `= X.XX` preview if expression has operator
+- `calcInput(ch)` — appends character with guard rules (no double operator, no double decimal)
+- `calcBack()` — deletes last character
+- `calcEqual()` — evaluates and collapses expression to result
+- `calcOK()` — calls `calcEqual()` then `closeCalc()`
 
 ---
 
@@ -122,29 +134,54 @@ Nothing · Every Day · Weekdays · Weekend · Every Week · Every 2 Weeks · Ev
 
 **Transactions (default)** — Month nav (← →, swipe). Summary bar (Expenses, count). Transactions grouped by date newest first. FAB + to add. Tap row → edit sheet.
 
-**Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = dark navy. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions + + button. No FAB (hidden).
+**Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions + + button. No FAB (hidden).
 
 **Stats** — Month nav (← →, swipe). SVG donut chart. Category breakdown list (dot, emoji, name, bar, %, amount).
 
 ---
 
-## Sheets
+## Sheets & Overlays
 
 - `#add-sheet` — add/edit transaction (date + 🔁 button, amount, category grid, note, save/delete)
 - `#repeat-sheet` — repeat picker (stacks above add sheet, z-index 400)
 - `#recurring-sheet` — manage recurring rules (stacks above overlay, z-index 400)
-- Overlay click: smart — closes topmost sheet only; `subSheet` tracks what's stacked
+- `#calc-keyboard` — custom calculator keyboard (z-index 500, fixed at bottom, slides up on amount tap)
+- Overlay click: smart — checks calc first, then topmost sheet; `subSheet` tracks what's stacked
+
+### Z-index stack
+| Layer | z-index |
+|---|---|
+| Overlay | 200 |
+| Add sheet | 300 |
+| Repeat / Recurring sheet | 400 |
+| Calculator keyboard | 500 |
+| Toast | 600 |
 
 ---
 
 ## Styling conventions
 
-- Background: `#f4f4f7` (warm off-white)
-- Cards: `#ffffff`, border-radius varies
-- Expense color: `#ef4444`
-- Today highlight: `#1e293b` (dark navy)
-- Selected non-today: `#ede9fe` bg, `#7c3aed` text
-- Calendar starts Sunday (col 1). Sun text = red, Sat text = blue.
-- Category icon bg: `${cat.color}1a` (10% opacity hex)
+### Colourful theme (applied Session 2)
+The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS block near the bottom of `<style>` — original variables remain for fallback.
+
+- **Background:** `linear-gradient(150deg, #fdf4ff 0%, #eef2ff 45%, #f0fdfa 100%)` — purple/lavender to mint
+- **Header / Nav:** `rgba(255,255,255,0.88)` + `backdrop-filter: blur(20px)` (frosted glass)
+- **Header title:** gradient text `linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)`
+- **Primary UI accent:** `#7c3aed` (violet/purple) — FAB, nav active, save button, today dot, calc operators
+- **Expense amounts:** `#ef4444` red (data colour — unchanged)
+- **Transaction cards:** `rgba(255,255,255,0.85)` glass, border-radius 16px, margin 0 12px 10px
+- **Summary stat cards:** pink gradient (expenses), purple gradient (count)
+- **Today highlight:** purple gradient (was dark navy)
+- **Selected non-today:** `#ede9fe` bg, `#7c3aed` text (unchanged)
+
+### Base variables (still in `:root`)
+- `--bg: #f4f4f7` (fallback only — body uses gradient)
+- `--card: #ffffff`
+- `--expense: #ef4444`
+- `--today-bg: #1e293b` (overridden by theme)
 - Font: Plus Jakarta Sans (Google Fonts CDN)
 - Safe area: `env(safe-area-inset-top)` top, `env(safe-area-inset-bottom)` bottom
+
+### Amount input
+- `type="text" inputmode="none" readonly onclick="openCalc()"` — suppresses native keyboard, opens calculator
+- Do NOT use `type="number"` — prevents expression strings like `3.75+4.95`
