@@ -144,6 +144,11 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `renderCatSheet()` — now ONLY renders the name-entry form inside `#cat-sheet` (no longer renders the grid)
 - `saveCustomCat()` — saves new cat (emoji='⭐', color auto from palette), closes sheet, calls `renderCatInner()`
 
+### Month navigation helpers (Session 8)
+- `weekOffsetForDate(ds)` — returns the integer week offset from the current week to the week containing `ds` (negative = past)
+- `syncTxToMonth()` — sets `txSelDay` to last day of `txYear/txMon` (capped at today), then sets `txWeekOffset` via `weekOffsetForDate`; called by `prevTx()`/`nextTx()` to keep strip in sync
+- `nextTx()` / `nextCal()` / `nextSt()` — blocked when already at current month; `>` button dimmed to 30% opacity
+
 ### Week strip helpers (Session 5)
 - `getTxWeekDays(offset)` — returns 7 ISO dates for the week at offset (0 = current), starting Sunday
 - `renderTxWeekStrip()` — builds strip HTML into `#tx-week-strip`; called by `renderContent()` after transactions HTML set
@@ -184,11 +189,11 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 
 ## Views
 
-**Transactions (default)** — Month nav (← →, swipe). Week strip (S M T W T F S, swipeable, expense dots). Tapping a day filters list to show only that day's transactions. Summary bar (day expenses, count). FAB + defaults date to `txSelDay`. Tap row → edit view.
+**Transactions (default)** — Month nav (← →, swipe). Future months blocked (> dims to 30%). Week strip (S M T W T F S, swipeable, expense dots). Day header always shows: date + day tag + inline purple `+` button (right). Summary bar (day expenses, count). FAB hidden in this view. Tap row → edit view.
 
-**Calendar** — Month nav (← →, swipe). Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. No FAB (hidden).
+**Calendar** — Month nav (← →, swipe). Future months blocked. Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. FAB hidden.
 
-**Stats** — Month nav (← →, swipe). SVG donut chart (r=90, sw=28, 300×225 display, viewBox 400×300, overflow=visible). Category name + % labels for segments ≥10% with leader lines. Category breakdown list (dot, emoji, name, bar, %, amount). Tap a category row → cat-detail view.
+**Stats** — Month nav (← →, swipe). Future months blocked. FAB hidden. SVG donut chart (r=90, sw=28, 300×225 display, viewBox 400×300, overflow=visible). Category name + % labels for segments ≥10% with leader lines. Category breakdown list (emoji, name, %, amount) — no dots, no bars. `stats-pct`: fixed width 44px, right-aligned. `stats-amt`: fixed width 110px, right-aligned. Tap a category row → cat-detail view.
 
 **Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats/Detail) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
 
@@ -198,16 +203,16 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 ```
 [icon] Category    Note text         RM X.XX
 ```
-- `.tx-left` (95px, row): icon circle (32px) + category label (13px grey)
-- `.tx-info` (flex:1): note text (13px bold); falls back to `—` if no note
-- `.tx-right`: amount in black (13px bold) — red removed as all entries are expenses
+- `.tx-left` (120px, row): icon circle (32px) + category label (12px, `#6b7280`)
+- `.tx-info` (flex:1): note text (12px bold); falls back to `—` if no note
+- `.tx-right`: amount in black (12px bold) — red removed as all entries are expenses
 
 ### Cat-detail row layout (`.cd-row`)
 ```
 Note text                             RM X.XX
 ```
 - Compact: `padding: 10px 16px`, no icon, no category label
-- `.cd-note`: 13px/500, flex:1; `.tx-amount` overridden to 13px within `.cd-row`
+- `.cd-note`: 12px/500, flex:1; `.tx-amount` overridden to 12px within `.cd-row`
 
 ---
 

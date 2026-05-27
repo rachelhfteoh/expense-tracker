@@ -1,14 +1,14 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App is functional and polished. Number formatting, donut chart labels, blank category default, recurring bug fix, and UI cleanup all complete. Tested in Safari.
+App is functional and polished. UI cleanup session complete — font sizes unified, month sync fixed, future month navigation blocked, stats bars removed, dots removed, FAB repositioned.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
 1. Deploy to GitHub Pages (PWA apple-touch-icon needed)
-2. End-to-end test — recurring, calendar, stats drill-down, photo, week strip navigation
+2. End-to-end test on actual iPhone — recurring, calendar, stats drill-down, photo, week strip
 
 ## Backlog
 - Search / filter transactions
@@ -33,25 +33,23 @@ Nothing in progress.
 ✅ Form row heights fixed — all rows 44px fixed height; amount font normalised to 15px/700
 ✅ Description textarea enlarged — min-height 90px for memo typing
 ✅ Repeat button icon-only — label removed, 🔁 icon only, title attribute for tooltip
-✅ Default category changed to blank — was Groceries; now blank with "Pick a category" placeholder; Save shows toast if not picked
+✅ Default category changed to blank — was Groceries; now blank with "Pick a category" placeholder
 ✅ Save/Delete bottom action bar — fixed bar at bottom; Save left, Delete right; both always visible
 ✅ Transaction layout restructured — category icon+name on left, note in middle, amount on right
 ✅ Sort by amount descending — highest spend first within each day group (Transactions + Calendar)
 ✅ Category grid 4 columns — was 3 columns; tiles smaller and phone-friendly
 ✅ Category delete rules — only deletable if no transactions tagged; built-in + custom both respect this
-✅ Week strip fixed — was vertical due to missing class="week-strip"; now horizontal S M T W T F S
+✅ Week strip fixed — was vertical; now horizontal S M T W T F S with class="week-strip"
 ✅ Day filtering on Transactions tab — tapping a strip day shows only that day's transactions
-✅ FAB date defaults to selected day — adding expense from transactions view uses txSelDay not today
+✅ FAB date defaults to selected day — uses txSelDay not todayStr() when opening from Transactions
 ✅ Category detail view — tapping a Stats category opens full-page breakdown (view='cat-detail')
-✅ Compact row styling — icon 32px, font 13px across category/note/amount, day totals black not red
 ✅ Number formatting with commas — rm() uses toLocaleString; RM 7,000.00 not RM 7000.00
-✅ Donut chart labels — category name + % shown for segments ≥10%; leader lines; overflow:visible
-✅ Donut chart enlarged — r=90, sw=28, display 300×225; viewBox 400×300
-✅ Calendar amounts black — cal-day-amt and cal-day-panel-total changed from red to #111827
-✅ Recurring overlay bug fixed — closeRepeatSheet() now hides overlay; no more frozen screen
-✅ Recurring button removed from header — not needed; 🔁 icon inline on recurring transaction rows
-✅ Recurring wording removed — rows show 🔁 icon only (inline with note text)
-✅ Custom category emoji changed to ⭐ — was 📦 brown box
-✅ Repeat frequencies trimmed — only Every Month, Every 3 Months, Every 6 Months, Annually + Nothing
-✅ Calculator no longer auto-opens — opens only when Amount tapped; same for category panel
-✅ Bottom panel sticky — position:sticky keeps calc/cat panel visible above action bar without scrolling
+✅ Donut chart labels — category name + % for segments ≥10%; leader lines; overflow:visible
+✅ Recurring overlay bug fixed — closeRepeatSheet() now hides overlay correctly
+✅ UI polish (Session 8) — font sizes unified to 12px, category label darkened to #6b7280
+✅ Month sync fixed — prevTx/nextTx now update txSelDay and txWeekOffset via syncTxToMonth()
+✅ Future month blocked — nextTx/nextCal/nextSt blocked at current month; > button dims to 30% opacity
+✅ FAB repositioned — 50px size, right: calc(24px + env(safe-area-inset-right)); hidden in Transactions/Stats
+✅ Inline + button in Transactions — replaces FAB; always shown in day header even when empty
+✅ Stats bars removed — progress bars removed from category list; % and amount columns fixed-width aligned
+✅ Stats dots removed — coloured dots removed from category list rows; emoji sufficient identifier

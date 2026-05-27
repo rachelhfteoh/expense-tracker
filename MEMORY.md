@@ -211,6 +211,35 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - Both panels now open only on user tap (Amount → calc, Category → cat grid).
 - `pickCatInline()` sets `activePanel = null` after pick (was `'calc'`) — avoids calc snapping back after category selection.
 
+### Month navigation and week strip sync bug (Session 8)
+- `prevTx()`/`nextTx()` previously only changed `txMon/txYear` — `txSelDay` and `txWeekOffset` stayed at today's values.
+- Result: navigating to April showed April in the header but the week strip and transaction list still showed May's current week.
+- Fix: `syncTxToMonth()` sets `txSelDay = lastDayOfMonth(txYear, txMon)` (capped at today) then computes `txWeekOffset = weekOffsetForDate(txSelDay)`.
+- `weekOffsetForDate(ds)` computes integer weeks between this week's Sunday and ds's Sunday — always negative for past weeks.
+
+### Future month blocking — all three tabs (Session 8)
+- `nextTx()`, `nextCal()`, `nextSt()` all return early if already at current year/month.
+- The `>` button is dimmed to `opacity: 0.3` and `disabled` when at current month — set after rendering the nav label.
+- Query: `document.querySelectorAll('#tx-nav .mnav-btn')[1]` — index 1 = right button.
+
+### Inline + button in Transactions day header (Session 8)
+- FAB hidden in `view === 'transactions'` and `view === 'stats'` — `isDetail` already hides for cat-detail.
+- Day header always renders first (even when empty), then either the empty state or the tx-card below.
+- The empty state `<div class="empty">` sits inside `day-group` below the header — not a top-level sibling.
+- `+ button` calls `openAdd()` (not `openAddForDay`) — `openAdd()` already defaults `fDate` to `txSelDay`.
+
+### Stats layout — fixed-width columns for alignment (Session 8)
+- Removed progress bars from stats category rows — % alone is sufficient, bar was redundant.
+- Removed coloured dots — emoji already identifies the category.
+- `stats-pct`: `width: 44px; text-align: right` — wide enough for "100%".
+- `stats-amt`: `width: 110px; text-align: right` — wide enough for "RM 999,999.00" at 13px bold.
+- Without fixed widths, variable amount lengths push the % column left/right per row — looks misaligned.
+
+### Transaction row font size and category colour (Session 8)
+- All tx row elements unified to 12px: `.tx-note`, `.tx-cat`, `.tx-amount`, `.cd-row .tx-amount`.
+- `.tx-cat` colour changed from `var(--text-3)` to `#6b7280` — more readable at 12px without overpowering the note.
+- `.tx-left` width increased from 95px to 120px to fit 13-character category names without truncation.
+
 ---
 
 ## Things to Watch Out For
