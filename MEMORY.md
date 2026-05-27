@@ -240,6 +240,34 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `.tx-cat` colour changed from `var(--text-3)` to `#6b7280` — more readable at 12px without overpowering the note.
 - `.tx-left` width increased from 95px to 120px to fit 13-character category names without truncation.
 
+### Deployment to GitHub Pages (Session 9)
+- Single `index.html` project deploys directly to GitHub Pages with no build step.
+- Steps: create repo on GitHub → `git remote add origin <url>` → `git push -u origin main` → Settings → Pages → Branch: main / (root) → Save.
+- Takes ~60 seconds to go live at `https://<username>.github.io/<repo>/`.
+- To update: just `git push` — GitHub Pages auto-redeploys on every push to main.
+- PWA icon: add `apple-touch-icon.png` (180×180) to repo root + `<link rel="apple-touch-icon" href="apple-touch-icon.png">` in `<head>`.
+- iPhone users must delete the old home screen icon and re-add after icon changes — Safari caches the old icon.
+
+### iOS auto-zoom on input tap (Session 9)
+- iOS Safari auto-zooms any `<input>` or `<textarea>` with `font-size < 16px` when tapped.
+- Fix: set ALL input/textarea font-sizes to minimum 16px. Even `readonly` inputs with `inputmode="none"` trigger zoom.
+- The amount field (`#f-amt`) was changed from `<input readonly>` to `<span onclick="openCalc()">` — this completely prevents focus and zoom since spans are not focusable.
+- `updateCalcDisplay()` uses `el.textContent` not `el.value` now that `#f-amt` is a span.
+- Calculator buttons need `touch-action: manipulation` to prevent double-tap zoom.
+
+### iOS date input alignment (Session 9)
+- `<input type="date">` on iOS Safari always centres its value text, regardless of `text-align: left` or `-webkit-appearance: none`. CSS cannot override this.
+- Fix: replace the visible date input with a `<span>` showing `fmtFormDate(fDate)`, and a hidden `<input type="date" id="f-date">` (opacity:0, 1×1px, pointer-events:none).
+- Tapping the row calls `.focus()` on the hidden input to open the native iOS date picker.
+- `syncFormState()` and `saveTx()` still read `da.value` from the hidden input — no other code changes needed.
+- `onchange` fires when user picks a date, updates `fDate`, calls `renderContent()` to refresh the display span.
+
+### PWA icon generation (Session 9)
+- No image editing tools available — icons generated with raw Python using `zlib` + `struct` modules.
+- PNG format: signature + IHDR chunk (width, height, 8-bit RGB) + IDAT chunk (zlib-compressed pixel rows) + IEND chunk.
+- Each row: filter byte (0) + RGB pixels. Chunks: 4-byte length + tag + data + CRC32.
+- App icon design: dark `#111111` background, gradient circle (purple #7c3aed → pink #ec4899), white "E", two gradient dots below. Matches dark iPhone theme.
+
 ---
 
 ## Things to Watch Out For
@@ -255,5 +283,8 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Panel toggle is DOM-only, not re-render** — `openCalc()` and `openCatPanel()` directly set `element.style.display`. Never call `renderContent()` just to switch panels — it causes unnecessary DOM rebuilds and potential focus loss on text fields.
 - **renderCatInner() must be called to update selection** — the cat grid in `#cat-inner` is not rebuilt by `initPanel()` automatically; it's built fresh by `renderCatInner()` each time the cat panel opens. After `pickCatInline()` calls `renderContent()`, `initPanel()` handles it.
 - **Amount 0.00 default** — `fAmount = '0.00'` when adding. `calcInput()` clears it on first digit. `calcBack()` clears in one tap. `calcEqual()` always formats to 2dp. Edit view uses `Number(t.amount).toFixed(2)` so stored amounts also display as 2dp.
+- **`#f-amt` is a span, not an input** — never revert to `<input>` or iOS will zoom on focus. All reads use `el.textContent`; `syncFormState` handles both span and input via `am.textContent || am.value`.
+- **Date row has hidden input** — `#f-date` is `opacity:0; width:1px; height:1px; pointer-events:none`. Tapping the row calls `.focus()` on it. Do not remove or make it `display:none` — it must remain in the DOM and focusable for the iOS date picker to work.
+- **All form inputs must be ≥ 16px** — iOS auto-zooms anything smaller. Never reduce `.form-input`, `.amount-input`, or `.desc-textarea` below 16px.
 - **FAB date must follow txSelDay** — `openAdd()` uses `txSelDay` when `view === 'transactions'`. If this ever reverts to `todayStr()`, expenses added from a past day will silently save to today and not appear.
 - **Theme override `.day-header` padding** — there is a theme CSS override for `.day-header` padding (near bottom of `<style>`). If day headers look too spaced, check this override — the base style alone is not enough.

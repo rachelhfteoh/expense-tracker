@@ -33,7 +33,7 @@ Update CLAUDE.md and CONTEXT.md, then commit both before compacting.
 
 Personal expense tracker (MYR only). Single `index.html`, no build tools, localStorage, PWA-ready.
 
-**Deployed at:** (not yet deployed — to be set up on GitHub Pages)
+**Deployed at:** https://rachelhfteoh.github.io/expense-tracker/
 
 ---
 
@@ -120,7 +120,8 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `evalAmount(raw)` — safely evaluates a math expression string (whitelist regex + Function()); returns number or null
 - `getAllCats()` — returns `[...CATS, ...data.customCats]` filtered by `data.hiddenCats`
 - `getCat(key)` — looks up cat in CATS then customCats, falls back to 'other'
-- `syncFormState()` — reads DOM inputs into fDate/fAmount/fNote/fDescription state vars (call before opening any sub-sheet)
+- `syncFormState()` — reads DOM inputs/spans into fDate/fAmount/fNote/fDescription state vars (call before opening any sub-sheet)
+- `fmtFormDate(ds)` — formats ISO date as "27 May 2026" for display in the date row span
 - `compressImage(dataUrl, cb)` — resizes to max 800px, JPEG 70%, returns via callback
 - `closeAddView()` — closes sub-sheets, resets overlay, sets view=addViewPrev, calls render()
 
@@ -264,16 +265,27 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 - Font: Plus Jakarta Sans (Google Fonts CDN)
 - Safe area: `env(safe-area-inset-top)` top, `env(safe-area-inset-bottom)` bottom
 
-### Form rows (Session 5)
+### Form rows (Session 5 / Session 9)
 - All `.form-row` elements: fixed `height: 44px`, `padding: 0 20px`, `box-sizing: border-box`
-- `.amount-input`: `font-size: 15px; font-weight: 700` (slightly larger than other fields but not huge)
-- `.desc-textarea`: `min-height: 90px` for memo typing
+- `.form-input`: `font-size: 16px; font-weight: 600` — 16px is the iOS minimum to prevent auto-zoom on tap
+- `.amount-input`: `font-size: 16px; font-weight: 600` — same as form-input (was 15px, caused zoom)
+- `.desc-textarea`: `font-size: 16px`, `min-height: 90px` for memo typing
 - Repeat button: icon-only (🔁), `width: 34px; height: 34px`, no label text
 
-### Amount input
-- `type="text" inputmode="none" readonly onclick="openCalc()"` — suppresses native keyboard, opens calculator
-- Do NOT use `type="number"` — prevents expression strings like `3.75+4.95`
-- Defaults to `'0.00'`; cleared on first digit; always formatted to 2dp after `=` or OK
+### Amount field (Session 9 change)
+- `#f-amt` is now a `<span>`, NOT an `<input>` — this prevents iOS from focusing it and auto-zooming
+- `onclick="openCalc()"` on the span opens the calculator
+- `updateCalcDisplay()` uses `el.textContent` (not `el.value`) to update the display
+- `syncFormState()` reads `am.textContent || am.value` to support both span and input
+- Do NOT revert to `<input>` — iOS will zoom on focus even with `readonly` + `inputmode="none"`
+
+### Date field (Session 9 change)
+- Date row shows a `<span class="form-input">` with `fmtFormDate(fDate)` ("27 May 2026" format)
+- A hidden `<input type="date" id="f-date">` sits absolutely positioned (opacity:0, 1×1px, pointer-events:none)
+- Tapping the row calls `document.getElementById('f-date').focus()` to open the native iOS date picker
+- `onchange` on the hidden input: `fDate=this.value; renderContent()` — re-renders the display span
+- `syncFormState()` and `saveTx()` still read `da.value` from the hidden input — works as before
+- Do NOT use native `<input type="date">` as the visible element — iOS centres its value and ignores text-align
 
 ### Bottom panel layout
 - `#bottom-panel` sits inline in `buildAddPage()` below the form fields; `margin-top: 12px`
