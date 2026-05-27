@@ -223,13 +223,13 @@
       align-items: center;
       gap: 7px;
       flex-shrink: 0;
-      width: 95px;
+      width: 120px;
     }
 
     .tx-info { flex: 1; min-width: 0; }
 
     .tx-note {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text);
       white-space: nowrap;
@@ -238,8 +238,8 @@
     }
 
     .tx-cat {
-      font-size: 13px;
-      color: var(--text-3);
+      font-size: 12px;
+      color: #6b7280;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -255,7 +255,7 @@
     }
 
     .tx-amount {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: #111827;
       white-space: nowrap;
@@ -351,10 +351,10 @@
     #fab {
       position: fixed;
       bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      border-radius: 28px;
+      right: calc(24px + env(safe-area-inset-right));
+      width: 50px;
+      height: 50px;
+      border-radius: 25px;
       background: var(--expense);
       color: #fff;
       border: none;
@@ -569,7 +569,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .cd-row .tx-amount { font-size: 13px; }
+    .cd-row .tx-amount { font-size: 12px; }
 
     .stats-cat-row {
       display: flex;
@@ -616,7 +616,7 @@
       font-size: 11px;
       font-weight: 700;
       color: var(--text-3);
-      width: 30px;
+      width: 44px;
       text-align: right;
       flex-shrink: 0;
     }
@@ -627,6 +627,8 @@
       color: var(--text);
       white-space: nowrap;
       flex-shrink: 0;
+      width: 110px;
+      text-align: right;
     }
 
     /* ── Overlay ── */
@@ -1750,7 +1752,7 @@ function renderNav() {
   const isAdd    = view === 'add';
   const isDetail = view === 'cat-detail';
   document.getElementById('nav').style.display = (isAdd || isDetail) ? 'none' : '';
-  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar') ? 'none' : 'flex';
+  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar' || view === 'transactions' || view === 'stats') ? 'none' : 'flex';
   if (isAdd || isDetail) return;
   ['transactions','calendar','stats'].forEach(v => {
     document.getElementById('nb-' + v).classList.toggle('active', view === v);
@@ -1810,6 +1812,9 @@ function renderHeader() {
       </div>
       ${navHtml('tx-nav','prevTx','nextTx')}`;
     document.getElementById('tx-nav-lbl').textContent = MONTHS[txMon] + ' ' + txYear;
+    const txNavBtns = document.querySelectorAll('#tx-nav .mnav-btn');
+    const txAtCurrent = txYear === new Date().getFullYear() && txMon === new Date().getMonth();
+    if (txNavBtns[1]) { txNavBtns[1].disabled = txAtCurrent; txNavBtns[1].style.opacity = txAtCurrent ? '0.3' : ''; }
     initSwipe('tx-nav', prevTx, nextTx);
 
   } else if (view === 'calendar') {
@@ -1817,6 +1822,9 @@ function renderHeader() {
       <div class="header-row"><span class="header-title">Calendar</span></div>
       ${navHtml('cal-nav','prevCal','nextCal')}`;
     document.getElementById('cal-nav-lbl').textContent = MONTHS[calMon] + ' ' + calYear;
+    const calNavBtns = document.querySelectorAll('#cal-nav .mnav-btn');
+    const calAtCurrent = calYear === new Date().getFullYear() && calMon === new Date().getMonth();
+    if (calNavBtns[1]) { calNavBtns[1].disabled = calAtCurrent; calNavBtns[1].style.opacity = calAtCurrent ? '0.3' : ''; }
     initSwipe('cal-nav', prevCal, nextCal);
 
   } else {
@@ -1824,6 +1832,9 @@ function renderHeader() {
       <div class="header-row"><span class="header-title">Stats</span></div>
       ${navHtml('st-nav','prevSt','nextSt')}`;
     document.getElementById('st-nav-lbl').textContent = MONTHS[stMon] + ' ' + stYear;
+    const stNavBtns = document.querySelectorAll('#st-nav .mnav-btn');
+    const stAtCurrent = stYear === new Date().getFullYear() && stMon === new Date().getMonth();
+    if (stNavBtns[1]) { stNavBtns[1].disabled = stAtCurrent; stNavBtns[1].style.opacity = stAtCurrent ? '0.3' : ''; }
     initSwipe('st-nav', prevSt, nextSt);
   }
 }
@@ -1859,30 +1870,27 @@ function buildTransactions() {
     </div>
   </div>`;
 
-  if (!txs.length) {
-    return html + `<div class="empty">
-      <div class="empty-ico">💸</div>
-      <div class="empty-title">No expenses on ${WDAYS[wd]}, ${d} ${MONTHS[m]}</div>
-      <div class="empty-sub">Tap + to log an expense</div>
-    </div>`;
-  }
-
-  const group = txs.slice().sort((a, b) => b.amount - a.amount);
-
   html += `<div class="day-group" id="tx-day-${txSelDay}">
     <div class="day-header">
       <span class="day-num">${d}</span>
       <span class="day-tag">${WDAYS[wd]}</span>
-      <span class="day-total">${rm(total)}</span>
-    </div>
-    <div class="tx-card">`;
+      <button class="cal-add-btn" onclick="openAdd()" style="margin-left:auto;">+</button>
+    </div>`;
 
-  for (const t of group) {
-    const cat = getCat(t.category);
-    html += txRowHtml(t, cat);
+  if (!txs.length) {
+    html += `<div class="empty" style="padding: 32px 0;">
+      <div class="empty-ico">💸</div>
+      <div class="empty-title">No expenses on ${WDAYS[wd]}, ${d} ${MONTHS[m]}</div>
+      <div class="empty-sub">Tap + to log an expense</div>
+    </div>`;
+  } else {
+    const group = txs.slice().sort((a, b) => b.amount - a.amount);
+    html += `<div class="tx-card">`;
+    for (const t of group) html += txRowHtml(t, getCat(t.category));
+    html += `</div>`;
   }
 
-  html += `</div></div>`;
+  html += `</div>`;
 
   return html;
 }
@@ -2023,12 +2031,8 @@ function buildStats() {
   for (const s of segs) {
     const pct = total > 0 ? (s.amount / total * 100) : 0;
     html += `<div class="stats-cat-row" onclick="openCatDetail('${s.key}')">
-      <div class="stats-dot" style="background:${s.color}"></div>
       <span class="stats-cat-emoji">${s.emoji}</span>
       <span class="stats-cat-name">${s.label}</span>
-      <div class="stats-bar-wrap">
-        <div class="stats-bar" style="width:${pct.toFixed(1)}%;background:${s.color}"></div>
-      </div>
       <span class="stats-pct">${pct.toFixed(0)}%</span>
       <span class="stats-amt">${rm(s.amount)}</span>
     </div>`;
@@ -2088,8 +2092,28 @@ function switchView(v) {
   document.getElementById('content').scrollTop = 0;
 }
 
-function prevTx()  { if (txMon === 0)  { txMon = 11; txYear--;  } else { txMon--;  } render(); }
-function nextTx()  { if (txMon === 11) { txMon = 0;  txYear++;  } else { txMon++;  } render(); }
+function weekOffsetForDate(ds) {
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const thisSun = new Date(today); thisSun.setDate(today.getDate() - today.getDay());
+  const target = new Date(ds + 'T12:00:00');
+  const targetSun = new Date(target); targetSun.setDate(target.getDate() - target.getDay());
+  return Math.round((targetSun - thisSun) / (7 * 24 * 60 * 60 * 1000));
+}
+
+function syncTxToMonth() {
+  const td = todayStr();
+  const last = lastDayOfMonth(txYear, txMon);
+  txSelDay = last <= td ? last : td;
+  txWeekOffset = weekOffsetForDate(txSelDay);
+}
+
+function prevTx() { if (txMon === 0) { txMon = 11; txYear--; } else { txMon--; } syncTxToMonth(); render(); }
+function nextTx() {
+  const now = new Date();
+  if (txYear === now.getFullYear() && txMon === now.getMonth()) return;
+  if (txMon === 11) { txMon = 0; txYear++; } else { txMon++; }
+  syncTxToMonth(); render();
+}
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 
@@ -2180,9 +2204,19 @@ function initTxWeekSwipe() {
   });
 }
 function prevCal() { if (calMon === 0) { calMon = 11; calYear--; } else { calMon--; } calSel = isoDate(calYear, calMon, 1); render(); }
-function nextCal() { if (calMon === 11){ calMon = 0;  calYear++; } else { calMon++; } calSel = isoDate(calYear, calMon, 1); render(); }
-function prevSt()  { if (stMon === 0)  { stMon = 11; stYear--;  } else { stMon--;  } render(); }
-function nextSt()  { if (stMon === 11) { stMon = 0;  stYear++;  } else { stMon++;  } render(); }
+function nextCal() {
+  const now = new Date();
+  if (calYear === now.getFullYear() && calMon === now.getMonth()) return;
+  if (calMon === 11) { calMon = 0; calYear++; } else { calMon++; }
+  calSel = isoDate(calYear, calMon, 1); render();
+}
+function prevSt() { if (stMon === 0) { stMon = 11; stYear--; } else { stMon--; } render(); }
+function nextSt() {
+  const now = new Date();
+  if (stYear === now.getFullYear() && stMon === now.getMonth()) return;
+  if (stMon === 11) { stMon = 0; stYear++; } else { stMon++; }
+  render();
+}
 
 // ── Category detail view ───────────────────────────────────────────────────────
 
