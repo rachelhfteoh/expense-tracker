@@ -1119,6 +1119,7 @@
       transition: background 0.08s;
       line-height: 1;
       user-select: none;
+      touch-action: manipulation;
     }
     .calc-btn:active { background: #e5e7eb; }
 
@@ -1140,7 +1141,7 @@
     .calc-back {
       background: #f9fafb;
       color: #6b7280;
-      font-size: 18px;
+      font-size: 22px;
     }
     .calc-back:active { background: #f3f4f6; }
 
@@ -1557,6 +1558,12 @@ function displayDate(ds) {
   return `${WDAYS[wd]}, ${String(d).padStart(2,'0')}/${String(m+1).padStart(2,'0')}/${y}`;
 }
 
+function fmtFormDate(ds) {
+  if (!ds) return '';
+  const { y, m, d } = parseDate(ds);
+  return `${d} ${MONTHS[m].slice(0, 3)} ${y}`;
+}
+
 function daysInMonth(y, m) {
   return new Date(y, m + 1, 0).getDate();
 }
@@ -1589,7 +1596,7 @@ function syncFormState() {
   const no = document.getElementById('f-note');
   const de = document.getElementById('f-desc');
   if (da) fDate        = da.value;
-  if (am) fAmount      = am.value;
+  if (am) fAmount      = am.textContent || am.value || '';
   if (no) fNote        = no.value;
   if (de) fDescription = de.value;
 }
@@ -2368,10 +2375,12 @@ function buildAddPage() {
   const selCat     = fCat ? getCat(fCat) : null;
 
   let html = `
-    <div class="form-row">
+    <div class="form-row" style="position:relative;cursor:pointer" onclick="if(!event.target.closest('button'))document.getElementById('f-date').focus()">
       <span class="form-lbl">Date</span>
-      <input type="date" class="form-input" id="f-date" value="${fDate}"
-        onchange="fDate=this.value" onfocus="closeCalc()">
+      <span class="form-input">${fmtFormDate(fDate)}</span>
+      <input type="date" id="f-date" value="${fDate}"
+        style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"
+        onchange="fDate=this.value;renderContent()" onfocus="closeCalc()">
       ${fMode === 'add' ? `
       <button class="repeat-trigger ${isRepeatOn ? 'on' : ''}" onclick="openRepeatSheet()" title="${isRepeatOn ? esc(repeatLbl) : 'Repeat'}">
         <span class="repeat-trigger-ico">🔁</span>
@@ -2379,9 +2388,8 @@ function buildAddPage() {
     </div>
     <div class="form-row">
       <span class="form-lbl">Amount</span>
-      <input type="text" inputmode="none" class="form-input amount-input" id="f-amt"
-        placeholder="0.00" value="${escAttr(fAmount)}"
-        readonly onclick="openCalc()">
+      <span class="form-input amount-input" id="f-amt"
+        onclick="openCalc()" style="cursor:pointer;-webkit-user-select:none;user-select:none">${fAmount || '0.00'}</span>
     </div>
     <div class="form-row cat-pick-row" onclick="openCatPanel()">
       <span class="form-lbl">Category</span>
@@ -2465,9 +2473,11 @@ function saveTx() {
   const de = document.getElementById('f-desc');
   if (da) fDate = da.value;
   if (am) {
-    const evaluated = evalAmount(am.value);
-    fAmount = evaluated !== null ? String(evaluated) : am.value;
-    am.value = fAmount;
+    const raw = am.textContent || am.value || '';
+    const evaluated = evalAmount(raw);
+    fAmount = evaluated !== null ? String(evaluated) : raw;
+    if (am.tagName === 'SPAN') am.textContent = fAmount;
+    else am.value = fAmount;
   }
   if (no) fNote = no.value;
   if (de) fDescription = de.value;
@@ -2913,7 +2923,7 @@ function hasCalcOperator(s) {
 
 function updateCalcDisplay() {
   const el = document.getElementById('f-amt');
-  if (el) el.value = calcExpr || '';
+  if (el) el.textContent = calcExpr || '';
   const preview = document.getElementById('calc-preview');
   if (!preview) return;
   const result = evalAmount(calcExpr);
