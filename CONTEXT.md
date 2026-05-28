@@ -1,14 +1,14 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App deployed to GitHub Pages. iOS zoom bugs fixed, form field font sizes unified, PWA icon added. Ready for full iPhone end-to-end test.
+App deployed to GitHub Pages. PWA bottom gap investigated — confirmed as iOS home indicator safe area (correct behaviour). Nav bar background now white. Swipe-to-delete added to transaction rows.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Full end-to-end test on iPhone — recurring, calendar, stats drill-down, photo, week strip, add/edit/delete
-2. Verify date picker, amount field, and calculator all work correctly on iPhone after iOS fixes
+1. Test swipe-to-delete on iPhone — swipe left on a row to reveal red Delete button
+2. Full end-to-end iPhone test — recurring, calendar, stats drill-down, photo, week strip
 
 ## Backlog
 - Search / filter transactions
@@ -55,3 +55,6 @@ Nothing in progress.
 ✅ Form font sizes unified — all fields 16px to prevent iOS auto-zoom
 ✅ iOS zoom fixes — amount field changed to span, date to display span + hidden input, touch-action on calc buttons
 ✅ Date display fix — fmtFormDate() shows "27 May 2026" format, left-aligned
+✅ PWA bottom gap — #app changed to position:fixed; body background set to white to match nav
+✅ Nav bar safe area — env() used directly (not via CSS variable) for padding-bottom and height
+✅ Swipe-to-delete on transaction rows — swipe left reveals red Delete button; tap to confirm delete

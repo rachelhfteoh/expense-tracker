@@ -268,6 +268,20 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - Each row: filter byte (0) + RGB pixels. Chunks: 4-byte length + tag + data + CRC32.
 - App icon design: dark `#111111` background, gradient circle (purple #7c3aed → pink #ec4899), white "E", two gradient dots below. Matches dark iPhone theme.
 
+### PWA bottom gap — iOS home indicator safe area (Session 10)
+- The white space below the nav icons is the iOS home indicator safe area (~34px) — correct PWA behaviour, not a bug.
+- `#app` changed to `position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden` — the most reliable way to pin a PWA shell to exact viewport edges.
+- Gradient moved from `html, body` to `#app` — CSS spec paints `html`/`body` backgrounds to the full viewport canvas regardless of their computed height, causing bleed-through. Gradient on `#app` is bounded by the element.
+- `html, body { background: #ffffff }` — matches nav bar so any residual bleed-through is invisible.
+- `env(safe-area-inset-bottom)` must be used DIRECTLY in nav height/padding — using it via a CSS custom property (`--safe-bottom: env(...)`) was unreliable on this device.
+
+### Swipe-to-delete on transaction rows (Session 10)
+- Each `.tx-row` is wrapped in `.tx-row-wrap` (overflow:hidden) with `.tx-swipe-del` absolutely positioned at the right edge.
+- `.tx-row` must have `background: var(--card)` — it's the "cover" that hides the red delete button when not swiped.
+- `.tx-row:last-child { border-bottom: none }` rule REMOVED — since `.tx-row` is always the last child of its `.tx-row-wrap`, this rule matched every row. Use `.tx-row-wrap:last-child .tx-row` instead.
+- `touchmove` uses `{ passive: false }` and calls `e.preventDefault()` when swipe is primarily horizontal — prevents vertical scroll hijacking.
+- `_openWrap` module variable tracks the currently open row; `closeOpenSwipeRow()` resets it. Always call `closeOpenSwipeRow()` in `switchView()`.
+
 ---
 
 ## Things to Watch Out For
@@ -288,3 +302,7 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **All form inputs must be ≥ 16px** — iOS auto-zooms anything smaller. Never reduce `.form-input`, `.amount-input`, or `.desc-textarea` below 16px.
 - **FAB date must follow txSelDay** — `openAdd()` uses `txSelDay` when `view === 'transactions'`. If this ever reverts to `todayStr()`, expenses added from a past day will silently save to today and not appear.
 - **Theme override `.day-header` padding** — there is a theme CSS override for `.day-header` padding (near bottom of `<style>`). If day headers look too spaced, check this override — the base style alone is not enough.
+- **`#app` is `position: fixed`** — do not change this to `height: 100%` or `height: 100dvh`. Fixed positioning is the only reliable way to pin the PWA shell on iOS without viewport height ambiguity.
+- **Nav bar background is opaque** — `rgba(255,255,255,0.98)`, no backdrop-filter. Do not restore frosted glass to the nav; it caused gradient bleed-through in the icon area.
+- **`env()` in nav must be direct** — use `env(safe-area-inset-bottom, 0px)` inline in `#nav` height and padding-bottom. Do not use `var(--safe-bottom)` — it was silently resolving to 0px on this device.
+- **Swipe rows: `.tx-row-wrap:last-child .tx-row`** — use this selector for removing the last border, NOT `.tx-row:last-child` which matches every row in the new wrapper structure.

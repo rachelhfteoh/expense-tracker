@@ -157,6 +157,14 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `changeTxWeek(dir)` — increments `txWeekOffset`; syncs month; calls `renderContent()`
 - `initTxWeekSwipe()` — attaches touch/mouse swipe handlers to the strip (idempotent via `_swipeInit` flag)
 
+### Swipe-to-delete helpers (Session 10)
+- `swipeDeleteTx(id)` — removes transaction by id, saves, calls `renderContent()`, shows "Deleted" toast
+- `initSwipeRows()` — attaches touch swipe handlers to all `.tx-row-wrap` elements (idempotent via `_swipeInit` flag); called by `renderContent()` after `renderTxWeekStrip()`
+- `closeOpenSwipeRow()` — snaps the currently open swipe row back to closed; called by `switchView()` and when a second row is swiped
+- `_openWrap` — module-level variable tracking which `.tx-row-wrap` is currently open (or null)
+- Swipe threshold: 38px (half of `SWIPE_W = 76px`) to commit open/close
+- Tap on open row: captured in the capture phase to close without firing `openEdit()`
+
 ### Category detail helpers (Session 6)
 - `openCatDetail(key)` — sets `catDetailKey`, `view='cat-detail'`, calls `render()`
 - `closeCatDetail()` — sets `view='stats'`, calls `render()`
@@ -204,6 +212,9 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 ```
 [icon] Category    Note text         RM X.XX
 ```
+- Each row is wrapped: `.tx-row-wrap` (overflow:hidden, position:relative) → `.tx-swipe-del` button (76px wide, absolute right) + `.tx-row`
+- `.tx-row` has `background: var(--card)` — required so it visually covers the red delete button when not swiped
+- `.tx-row-wrap:last-child .tx-row { border-bottom: none }` — use this, NOT `.tx-row:last-child` (which now incorrectly matches every row since each is the only `.tx-row` in its wrap)
 - `.tx-left` (120px, row): icon circle (32px) + category label (12px, `#6b7280`)
 - `.tx-info` (flex:1): note text (12px bold); falls back to `—` if no note
 - `.tx-right`: amount in black (12px bold) — red removed as all entries are expenses
@@ -245,8 +256,10 @@ Note text                             RM X.XX
 ### Colourful theme (applied Session 2)
 The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS block near the bottom of `<style>` — original variables remain for fallback.
 
-- **Background:** `linear-gradient(150deg, #fdf4ff 0%, #eef2ff 45%, #f0fdfa 100%)` — purple/lavender to mint
-- **Header / Nav:** `rgba(255,255,255,0.88)` + `backdrop-filter: blur(20px)` (frosted glass)
+- **Background:** `linear-gradient(150deg, #fdf4ff 0%, #eef2ff 45%, #f0fdfa 100%)` — applied to `#app` (NOT html/body)
+- **html, body background:** `#ffffff` — matches nav bar so any PWA bleed-through is invisible
+- **Header:** `rgba(255,255,255,0.88)` + `backdrop-filter: blur(20px)` (frosted glass)
+- **Nav:** `rgba(255,255,255,0.98)` — fully opaque, NO frosted glass (removed Session 10 to prevent gradient bleed-through)
 - **Header title (main views):** gradient text `linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)`
 - **Add-page header title:** plain `#111827` (no gradient) — use `.add-page-header-title` class
 - **Primary UI accent:** `#7c3aed` (violet/purple) — FAB, nav active, save button, today dot, calc operators
@@ -258,12 +271,17 @@ The app matches the Habit Tracker aesthetic. Theme overrides are added as a CSS 
 - **Selected non-today:** `#ede9fe` bg, `#7c3aed` text (unchanged)
 
 ### Base variables (still in `:root`)
-- `--bg: #f4f4f7` (fallback only — body uses gradient)
+- `--bg: #f4f4f7` (fallback only — #app uses gradient directly)
 - `--card: #ffffff`
 - `--expense: #ef4444`
 - `--today-bg: #1e293b` (overridden by theme)
 - Font: Plus Jakarta Sans (Google Fonts CDN)
 - Safe area: `env(safe-area-inset-top)` top, `env(safe-area-inset-bottom)` bottom
+
+### App shell layout (Session 10)
+- `#app` uses `position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden` — pins to exact viewport edges, no height calculations needed
+- `#nav` uses `env(safe-area-inset-bottom, 0px)` DIRECTLY in `padding-bottom` and `height: calc(60px + env(...))` — NOT via `--safe-bottom` CSS variable (custom property + env() was unreliable on iOS)
+- The bottom safe area gap (white space below nav icons) is the iOS home indicator area — correct behaviour, not a bug
 
 ### Form rows (Session 5 / Session 9)
 - All `.form-row` elements: fixed `height: 44px`, `padding: 0 20px`, `box-sizing: border-box`
