@@ -1177,7 +1177,16 @@
     }
     .calc-back:active { background: #f3f4f6; }
 
-    .calc-zero { grid-column: span 3; }
+    .calc-zero { grid-column: span 2; }
+
+    .calc-ac {
+      background: #f9fafb;
+      color: #ef4444;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .calc-ac:active { background: #fee2e2; }
 
     .calc-ok {
       background: var(--expense);
@@ -2552,6 +2561,7 @@ function buildAddPage() {
         <button class="calc-btn" onclick="calcInput('3')">3</button>
         <button class="calc-btn calc-back" onclick="calcBack()">⌫</button>
         <button class="calc-btn calc-zero" onclick="calcInput('0')">0</button>
+        <button class="calc-btn calc-ac" onclick="calcAC()">AC</button>
         <button class="calc-btn calc-ok" onclick="calcOK()">OK</button>
       </div>
     </div>
@@ -2941,12 +2951,14 @@ function toast(msg) {
 let calcCents     = 0;    // current right operand in integer cents
 let calcLeftCents = null; // left operand when operator is pending
 let calcOp        = null; // '+' | '-' | '*' | '/' | null
+let calcIntMode   = false; // true after × or ÷: digits enter as whole numbers, not cents
 let activePanel = null; // 'calc' | 'cat' | null
 
 function openCalc() {
   calcCents     = Math.round((parseFloat(fAmount) || 0) * 100);
   calcLeftCents = null;
   calcOp        = null;
+  calcIntMode   = false;
   activePanel   = 'calc';
   const calcEl = document.getElementById('calc-inner');
   const catEl  = document.getElementById('cat-inner');
@@ -3061,10 +3073,16 @@ function calcInput(ch) {
     calcLeftCents = calcCents;
     calcOp = ch;
     calcCents = 0;
+    calcIntMode = (ch === '*' || ch === '/');
   } else if (ch === '00') {
     calcCents = Math.min(calcCents * 100, 999999999);
   } else if (/\d/.test(ch)) {
-    calcCents = Math.min(calcCents * 10 + parseInt(ch), 999999999);
+    if (calcIntMode && calcOp !== null) {
+      // Integer-first mode for × and ÷: pressing 2 gives 2.00, not 0.02
+      calcCents = Math.min(calcCents * 10 + parseInt(ch) * 100, 999999999);
+    } else {
+      calcCents = Math.min(calcCents * 10 + parseInt(ch), 999999999);
+    }
   }
   updateCalcDisplay();
 }
@@ -3074,9 +3092,19 @@ function calcBack() {
     calcCents = calcLeftCents;
     calcLeftCents = null;
     calcOp = null;
+    calcIntMode = false;
+  } else if (calcIntMode && calcOp !== null) {
+    // Remove last whole digit: 23.00 → 2.00 → 0 (then next back cancels operator)
+    calcCents = Math.floor(Math.floor(calcCents / 100) / 10) * 100;
   } else {
     calcCents = Math.floor(calcCents / 10);
   }
+  updateCalcDisplay();
+}
+
+function calcAC() {
+  calcCents = 0;
+  calcIntMode = false;
   updateCalcDisplay();
 }
 
@@ -3086,6 +3114,7 @@ function calcEqual() {
     calcLeftCents = null;
     calcOp = null;
   }
+  calcIntMode = false;
   updateCalcDisplay();
 }
 
