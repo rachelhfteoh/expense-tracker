@@ -14,6 +14,11 @@ Update CLAUDE.md and CONTEXT.md, then commit both before compacting.
 2. ✅ CONTEXT.md updated
 3. ✅ CLAUDE.md updated with any architecture changes
 
+### Testing — always commit and push before asking Rachel to test
+Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/).
+Every change MUST be committed and pushed before asking her to test.
+Never ask her to test without pushing first — she will always see the old cached version.
+
 ---
 
 ## Project files
@@ -98,7 +103,9 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fDescription` — long-form description field state
 - `fPhoto` — base64 photo data URL (or null)
 - `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | null`)
-- `calcExpr` — current expression string in the calculator keyboard (e.g. `"3.75+4.95"`)
+- `calcCents` — current right operand in integer cents (e.g. `1234` = RM 12.34)
+- `calcLeftCents` — left operand in cents when an operator is pending (null otherwise)
+- `calcOp` — pending operator: `'+'|'-'|'*'|'/'|null`
 - `activePanel` — which panel is visible in the bottom panel area (`'calc' | 'cat' | null`)
 - `catAddMode` — whether the "New Category" name-entry form is open in `#cat-sheet`
 - `newCatLabel` — new category name being typed
@@ -126,18 +133,20 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `closeAddView()` — closes sub-sheets, resets overlay, sets view=addViewPrev, calls render()
 
 ### Bottom panel helpers (Session 4)
-- `openCalc()` — sets `activePanel='calc'`, shows `#calc-inner`, hides `#cat-inner`, calls `updateCalcDisplay()`
+- `openCalc()` — sets `activePanel='calc'`, inits `calcCents` from `fAmount`, shows `#calc-inner`, calls `updateCalcDisplay()`
 - `closeCalc()` — sets `activePanel=null`, hides `#calc-inner`
 - `openCatPanel()` — sets `activePanel='cat'`, hides calc, calls `renderCatInner()`, shows `#cat-inner`
 - `renderCatInner()` — builds category grid HTML into `#cat-inner` (excludes 'other'; adds "Add" tile; shows ✕ only if category has no tagged transactions)
 - `pickCatInline(key)` — sets `fCat`, sets `activePanel=null` (closes panel), calls `renderContent()`
 - `deleteCatInline(key)` — custom cats: removed from `customCats`; built-in cats: added to `hiddenCats`; calls `renderCatInner()`
 - `initPanel()` — called by `renderContent()` after DOM rebuild; restores panel to `activePanel` state
-- `updateCalcDisplay()` — syncs `calcExpr` to `#f-amt`; shows `= X.XX` preview if expression has operator
-- `calcInput(ch)` — appends character; clears `0.00` default on first digit
-- `calcBack()` — deletes last character; clears `0.00` in one press
-- `calcEqual()` — evaluates and formats result to 2dp
+- `updateCalcDisplay()` — formats `calcCents` via `centsToStr()` into `#f-amt`; shows operator preview; syncs `fAmount`
+- `calcInput(ch)` — digit: shifts `calcCents` left (`*10 + digit`); `'00'`: shifts two places; operator: commits left operand, resets right to 0
+- `calcBack()` — removes last digit (`floor(calcCents/10)`); if right=0 and op pending, cancels the operator
+- `calcEqual()` — applies pending operator via `applyOpCents()`
 - `calcOK()` — calls `calcEqual()` then `closeCalc()`
+- `centsToStr(c)` — formats integer cents as "X,XXX.XX" string (no RM prefix)
+- `applyOpCents(left, op, right)` — applies operator on cent values, returns result in cents (min 0)
 
 ### Category "New Category" sheet helpers (Session 4)
 - `openCatNew()` — sets `catAddMode=true`, renders name form into `#cat-sheet`, shows sheet + overlay

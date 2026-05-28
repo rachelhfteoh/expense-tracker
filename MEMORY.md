@@ -281,6 +281,22 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `.tx-row:last-child { border-bottom: none }` rule REMOVED — since `.tx-row` is always the last child of its `.tx-row-wrap`, this rule matched every row. Use `.tx-row-wrap:last-child .tx-row` instead.
 - `touchmove` uses `{ passive: false }` and calls `e.preventDefault()` when swipe is primarily horizontal — prevents vertical scroll hijacking.
 - `_openWrap` module variable tracks the currently open row; `closeOpenSwipeRow()` resets it. Always call `closeOpenSwipeRow()` in `switchView()`.
+- `touch-action: pan-y` on `.tx-row-wrap` — required so iOS Safari passes horizontal swipe events to JS even when the content area is scrollable (e.g. Calendar tab).
+- `initSwipeRows()` must be called after BOTH `view === 'transactions'` AND `view === 'calendar'` renders — both views use `txRowHtml()`.
+
+### Decimal-first amount input (Session 11)
+- Amount input uses cash register / POS style: digits flow right-to-left, always 2 decimal places.
+- State: `calcCents` (integer cents), `calcLeftCents` (left operand), `calcOp` (pending operator or null).
+- `openCalc()` seeds `calcCents = Math.round(parseFloat(fAmount) * 100)` so edit mode loads correctly.
+- `updateCalcDisplay()` formats via `centsToStr()` and syncs `fAmount = (calcCents/100).toFixed(2)`.
+- The `.` button was replaced with `00` (double zero) — more useful for round amounts in cash-register style.
+- `syncFormState()` and `saveTx()` strip commas before parsing: `.replace(/,/g, '')` — the display shows "1,234.56" but fAmount stores "1234.56".
+- `buildAddPage()` formats the initial amount display with `toLocaleString` for consistency.
+
+### Always commit and push before asking Rachel to test (Session 11)
+- Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/), not local files.
+- Every fix must be committed and pushed BEFORE asking her to test — otherwise she sees the old cached version.
+- This cost a full session of confusion — she was testing on stale cache the entire time thinking fixes weren't working.
 
 ---
 
@@ -290,7 +306,7 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **syncFormState() before sub-sheets:** Must sync form field values into state variables BEFORE opening cat-sheet or repeat-sheet, or those fields reset to stale state on re-render.
 - **Sun-Sat calendar column colours:** These rely on CSS `nth-child` selectors — `7n+1` = Sun (col 1), `7n` = Sat (col 7). Don't change the grid column order.
 - **End of month edge case:** Day 0 of month M+2 = last day of month M+1. Use `new Date(y, m+2, 0)` pattern.
-- **Calc keyboard state:** `calcExpr` and `fAmount` must stay in sync. `openCalc()` seeds `calcExpr` from `fAmount`. `calcInput/calcBack/calcEqual` update both. After `renderContent()` (e.g. category change), amount field re-renders from `fAmount` — this is correct.
+- **Calc keyboard state:** `calcCents` is the source of truth. `openCalc()` seeds it from `fAmount`. `updateCalcDisplay()` always syncs both `#f-amt` display and `fAmount` string. After `renderContent()` (e.g. category change), amount field re-renders from `fAmount` — this is correct.
 - **CSS theme override order matters:** The colourful theme block must come AFTER the base styles in `<style>` or the cascade won't work. Never move base `:root` variables below the overrides.
 - **Add-page title uses plain font, not gradient:** `.add-page-header-title` is plain `#111827`. The gradient text styling is on `.header-title` which is only used in main views.
 - **buildAddPage() returns HTML string** — do not try to call `document.getElementById('add-body')` in add-view flow; that element is in the unused `#add-sheet`. The form is rendered into `#content`.

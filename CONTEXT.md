@@ -1,17 +1,16 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App deployed to GitHub Pages. PWA bottom gap investigated — confirmed as iOS home indicator safe area (correct behaviour). Nav bar background now white. Swipe-to-delete added to transaction rows.
+App deployed to GitHub Pages. Decimal-first amount input and swipe-to-delete (Transactions + Calendar) working and tested on iPhone.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Test swipe-to-delete on iPhone — swipe left on a row to reveal red Delete button
-2. Full end-to-end iPhone test — recurring, calendar, stats drill-down, photo, week strip
+1. Full end-to-end iPhone test — recurring, calendar, stats drill-down, photo, week strip
+2. Search / filter transactions
 
 ## Backlog
-- Search / filter transactions
 - Export data (JSON backup)
 - Budget targets per category
 
@@ -23,7 +22,7 @@ Nothing in progress.
 ✅ Colourful theme — gradient background, purple accent, glass cards, pastel stat cards
 ✅ Design polish — SVG icons, larger touch targets, nav indicator line, transitions
 ✅ Calculator keyboard — custom in-app calc; supports +−×÷, preview, OK to confirm
-✅ Compact add form — Date, Amount, Category row, Note, Description + camera icon
+✅ Compact add form — Date, Amount, Category row, Note, Description + camera
 ✅ Category sheet — bottom sheet with custom categories (emoji auto-assigned, color from palette)
 ✅ Description + photo — textarea, camera button, photo compressed to base64
 ✅ Full-page add view — view='add'; header back + Save; nav hides
@@ -57,4 +56,5 @@ Nothing in progress.
 ✅ Date display fix — fmtFormDate() shows "27 May 2026" format, left-aligned
 ✅ PWA bottom gap — #app changed to position:fixed; body background set to white to match nav
 ✅ Nav bar safe area — env() used directly (not via CSS variable) for padding-bottom and height
-✅ Swipe-to-delete on transaction rows — swipe left reveals red Delete button; tap to confirm delete
+✅ Swipe-to-delete on transaction rows — swipe left reveals red Delete button; Transactions + Calendar tabs
+✅ Decimal-first amount input — cash register style; digits flow right-to-left; dot replaced with 00 button
