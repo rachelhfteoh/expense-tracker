@@ -204,6 +204,7 @@
     .tx-row-wrap {
       position: relative;
       overflow: hidden;
+      touch-action: pan-y;
     }
     .tx-row-wrap:last-child .tx-row { border-bottom: none; }
     .tx-swipe-del {
@@ -1627,7 +1628,7 @@ function syncFormState() {
   const no = document.getElementById('f-note');
   const de = document.getElementById('f-desc');
   if (da) fDate        = da.value;
-  if (am) fAmount      = am.textContent || am.value || '';
+  if (am) fAmount      = (am.textContent || am.value || '').replace(/,/g, '');
   if (no) fNote        = no.value;
   if (de) fDescription = de.value;
 }
@@ -2495,7 +2496,7 @@ function buildAddPage() {
     <div class="form-row">
       <span class="form-lbl">Amount</span>
       <span class="form-input amount-input" id="f-amt"
-        onclick="openCalc()" style="cursor:pointer;-webkit-user-select:none;user-select:none">${fAmount || '0.00'}</span>
+        onclick="openCalc()" style="cursor:pointer;-webkit-user-select:none;user-select:none">${fAmount && fAmount !== '0.00' ? parseFloat(fAmount).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00'}</span>
     </div>
     <div class="form-row cat-pick-row" onclick="openCatPanel()">
       <span class="form-lbl">Category</span>
@@ -2544,7 +2545,7 @@ function buildAddPage() {
         <button class="calc-btn" onclick="calcInput('4')">4</button>
         <button class="calc-btn" onclick="calcInput('5')">5</button>
         <button class="calc-btn" onclick="calcInput('6')">6</button>
-        <button class="calc-btn" onclick="calcInput('.')">.</button>
+        <button class="calc-btn" onclick="calcInput('00')">00</button>
         <button class="calc-btn" onclick="calcInput('1')">1</button>
         <button class="calc-btn" onclick="calcInput('2')">2</button>
         <button class="calc-btn" onclick="calcInput('3')">3</button>
@@ -2579,7 +2580,7 @@ function saveTx() {
   const de = document.getElementById('f-desc');
   if (da) fDate = da.value;
   if (am) {
-    const raw = am.textContent || am.value || '';
+    const raw = (am.textContent || am.value || '').replace(/,/g, '');
     const evaluated = evalAmount(raw);
     fAmount = evaluated !== null ? String(evaluated) : raw;
     if (am.tagName === 'SPAN') am.textContent = fAmount;
@@ -2936,12 +2937,16 @@ function toast(msg) {
 
 // ── Calculator keyboard ───────────────────────────────────────────────────────
 
-let calcExpr   = '';
+let calcCents     = 0;    // current right operand in integer cents
+let calcLeftCents = null; // left operand when operator is pending
+let calcOp        = null; // '+' | '-' | '*' | '/' | null
 let activePanel = null; // 'calc' | 'cat' | null
 
 function openCalc() {
-  calcExpr = fAmount || '';
-  activePanel = 'calc';
+  calcCents     = Math.round((parseFloat(fAmount) || 0) * 100);
+  calcLeftCents = null;
+  calcOp        = null;
+  activePanel   = 'calc';
   const calcEl = document.getElementById('calc-inner');
   const catEl  = document.getElementById('cat-inner');
   if (calcEl) {
@@ -3023,55 +3028,64 @@ function initPanel() {
   }
 }
 
-function hasCalcOperator(s) {
-  return /[+*/]/.test(s) || (s.length > 1 && s.slice(1).includes('-'));
+function centsToStr(c) {
+  return (c / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function applyOpCents(left, op, right) {
+  const l = left / 100, r = right / 100;
+  const result = op === '+' ? l + r : op === '-' ? l - r : op === '*' ? l * r : r !== 0 ? l / r : l;
+  return Math.round(Math.max(0, result) * 100);
 }
 
 function updateCalcDisplay() {
   const el = document.getElementById('f-amt');
-  if (el) el.textContent = calcExpr || '';
+  if (el) el.textContent = calcCents > 0 ? centsToStr(calcCents) : '0.00';
+  fAmount = (calcCents / 100).toFixed(2);
   const preview = document.getElementById('calc-preview');
   if (!preview) return;
-  const result = evalAmount(calcExpr);
-  preview.textContent = (result !== null && hasCalcOperator(calcExpr))
-    ? '= ' + result.toFixed(2) : '';
+  if (calcOp !== null) {
+    const sym = { '+': '+', '-': '−', '*': '×', '/': '÷' }[calcOp];
+    preview.textContent = calcCents > 0
+      ? centsToStr(calcLeftCents) + ' ' + sym + ' ' + centsToStr(calcCents) + ' = ' + centsToStr(applyOpCents(calcLeftCents, calcOp, calcCents))
+      : centsToStr(calcLeftCents) + ' ' + sym + ' ...';
+  } else {
+    preview.textContent = '';
+  }
 }
 
 function calcInput(ch) {
-  const isOp = c => ['+', '-', '*', '/'].includes(c);
-  // Clear the default 0.00 when user starts typing a digit
-  if (calcExpr === '0.00' && !isOp(ch)) calcExpr = '';
-  const last = calcExpr.slice(-1);
-  if (isOp(ch) && isOp(last)) {
-    calcExpr = calcExpr.slice(0, -1) + ch;
-  } else if (!calcExpr && isOp(ch) && ch !== '-') {
-    return;
-  } else if (ch === '.') {
-    const parts = calcExpr.split(/[+\-*/]/);
-    if (parts[parts.length - 1].includes('.')) return;
-    calcExpr += ch;
-  } else {
-    calcExpr += ch;
+  if (['+', '-', '*', '/'].includes(ch)) {
+    if (calcOp !== null) calcCents = applyOpCents(calcLeftCents, calcOp, calcCents);
+    calcLeftCents = calcCents;
+    calcOp = ch;
+    calcCents = 0;
+  } else if (ch === '00') {
+    calcCents = Math.min(calcCents * 100, 999999999);
+  } else if (/\d/.test(ch)) {
+    calcCents = Math.min(calcCents * 10 + parseInt(ch), 999999999);
   }
-  fAmount = calcExpr;
   updateCalcDisplay();
 }
 
 function calcBack() {
-  // Pressing backspace on the default value resets to empty
-  if (calcExpr === '0.00') { calcExpr = ''; fAmount = ''; updateCalcDisplay(); return; }
-  calcExpr = calcExpr.slice(0, -1);
-  fAmount = calcExpr;
+  if (calcCents === 0 && calcOp !== null) {
+    calcCents = calcLeftCents;
+    calcLeftCents = null;
+    calcOp = null;
+  } else {
+    calcCents = Math.floor(calcCents / 10);
+  }
   updateCalcDisplay();
 }
 
 function calcEqual() {
-  const result = evalAmount(calcExpr);
-  if (result !== null) {
-    calcExpr = result.toFixed(2);
-    fAmount = calcExpr;
-    updateCalcDisplay();
+  if (calcOp !== null) {
+    calcCents = applyOpCents(calcLeftCents, calcOp, calcCents);
+    calcLeftCents = null;
+    calcOp = null;
   }
+  updateCalcDisplay();
 }
 
 function calcOK() {
