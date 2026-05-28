@@ -1895,6 +1895,7 @@ function renderContent() {
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
   if (view === 'transactions') { renderTxWeekStrip(); initSwipeRows(); }
+  if (view === 'calendar') initSwipeRows();
 }
 
 // ── Transactions view ─────────────────────────────────────────────────────────
