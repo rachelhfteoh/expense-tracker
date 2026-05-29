@@ -1,13 +1,13 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App deployed to GitHub Pages. Decimal-first amount input and swipe-to-delete (Transactions + Calendar) working and tested on iPhone.
+App deployed to GitHub Pages. Recurring tab added, tested locally. Changes not yet pushed to GitHub Pages.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Full end-to-end iPhone test — recurring, calendar, stats drill-down, photo, week strip
+1. Push session changes and do full end-to-end iPhone test (recurring tab, delete rule, 🔁 badge behaviour)
 2. Search / filter transactions
 
 ## Backlog
@@ -58,3 +58,7 @@ Nothing in progress.
 ✅ Nav bar safe area — env() used directly (not via CSS variable) for padding-bottom and height
 ✅ Swipe-to-delete on transaction rows — swipe left reveals red Delete button; Transactions + Calendar tabs
 ✅ Decimal-first amount input — cash register style; digits flow right-to-left; dot replaced with 00 button
+✅ Recurring tab — 4th nav tab; shows all active rules with emoji, note, frequency, amount, start date; ✕ to delete
+✅ Recurring rule sync — editing a recurring transaction also updates rule's note/amount/category
+✅ Smart 🔁 badge — shows in transaction rows only while rule is active; always shown in Edit Expense header
+✅ Delete rule UX — ✕ prompts "Delete all future recurring transactions?"; keeps today + past; clears future only

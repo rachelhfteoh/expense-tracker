@@ -90,7 +90,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - No build tools, no npm, no bundler
 
 ### Key state variables
-- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail'`
+- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail' | 'recurring'`
 - `addViewPrev` — view to return to when closing the add page (e.g. `'transactions'`, `'cat-detail'`)
 - `txYear, txMon` — month displayed in Transactions tab
 - `txWeekOffset` — week offset for the week strip (0 = current week, negative = past weeks)
@@ -102,6 +102,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fMode, fEditId, fDate, fAmount, fCat, fNote, fRepeat` — add/edit form state
 - `fDescription` — long-form description field state
 - `fPhoto` — base64 photo data URL (or null)
+- `fIsRecurring` — true when editing a transaction that has/had a `recurringId`; used to show 🔁 in Edit Expense header
 - `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | null`)
 - `calcCents` — current right operand in integer cents (e.g. `1234` = RM 12.34)
 - `calcLeftCents` — left operand in cents when an operator is pending (null otherwise)
@@ -199,9 +200,11 @@ Custom categories: `key: 'custom_<uid>'`, `emoji: '⭐'` (auto), color cycles th
 Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 
 - `generateRecurring()` runs on every app load; generates missing instances up to today (max 1000 per rule)
-- Editing a recurring instance only changes that instance — rule is unchanged
+- Editing a recurring transaction ALSO updates the rule's `note`, `amount`, `category` — keeps Recurring tab in sync
 - Recurring rules sheet removed from Transactions header (button deleted); existing rules still generate correctly
-- Recurring rows show inline 🔁 icon next to note text only (no "recurring" label)
+- 🔁 badge in transaction rows: shown only while the rule still exists (`data.recurring.some(r => r.id === t.recurringId)`)
+- 🔁 icon in Edit Expense header: shown whenever `fIsRecurring` is true — permanent marker even after rule deleted
+- `recurringId` is NOT nulled out when a rule is deleted — kept for the Edit header indicator
 
 ---
 
@@ -216,6 +219,8 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 **Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats/Detail) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
 
 **Category detail (`view = 'cat-detail'`)** — Full-page. Header: `← Stats` + `[emoji] Category` + month subtitle. Nav/FAB hidden. Summary bar (total, count). Transactions for that category in `stYear/stMon`, grouped by date, compact rows (note + amount only). Tap row → edit (returns to cat-detail after save).
+
+**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count). Glass card list of all `data.recurring` rules: emoji, note/category name, frequency · amount · since [date]. ✕ button → `confirm()` → deletes rule + all transactions with that `recurringId` dated after today; today and past entries untouched. `buildRecurring()` / `deleteRuleFromView(id)`.
 
 ### Transaction row layout
 ```

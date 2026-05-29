@@ -293,6 +293,15 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - `syncFormState()` and `saveTx()` strip commas before parsing: `.replace(/,/g, '')` — the display shows "1,234.56" but fAmount stores "1234.56".
 - `buildAddPage()` formats the initial amount display with `toLocaleString` for consistency.
 
+### Recurring tab and rule management (Session 12)
+- Added 4th nav tab `view = 'recurring'` — `buildRecurring()` / `deleteRuleFromView(id)`.
+- `renderHeader()` has a new `else if (view === 'recurring')` branch before the `else` (Stats) branch — title only, no month nav.
+- **Rule sync on edit:** `saveTx()` edit path now also updates `rule.note`, `rule.amount`, `rule.category` when `tx.recurringId` exists. Without this, Recurring tab shows stale data after editing a transaction.
+- **Smart 🔁 badge:** `txRowHtml()` and `catDetailRowHtml()` check `data.recurring.some(r => r.id === t.recurringId)` — badge only shows while the rule is alive. Do NOT simplify back to `t.recurringId ? ...` or the badge will persist after rule deletion.
+- **`recurringId` is NOT nulled on rule delete** — it's kept on transactions so the 🔁 indicator still shows in the Edit Expense header (`fIsRecurring = !!t.recurringId` in `openEdit()`). Nulling it would break this feature.
+- **Delete rule UX:** `deleteRuleFromView()` uses `confirm()` with message "Delete all future recurring transactions?". Deletes future transactions (`date > today`) + removes rule. Today and past entries always preserved.
+- **"Future" = strictly after today** — use `date > today` (not `>=`). Today's transaction is "current" and kept.
+
 ### Always commit and push before asking Rachel to test (Session 11)
 - Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/), not local files.
 - Every fix must be committed and pushed BEFORE asking her to test — otherwise she sees the old cached version.
@@ -322,3 +331,5 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Nav bar background is opaque** — `rgba(255,255,255,0.98)`, no backdrop-filter. Do not restore frosted glass to the nav; it caused gradient bleed-through in the icon area.
 - **`env()` in nav must be direct** — use `env(safe-area-inset-bottom, 0px)` inline in `#nav` height and padding-bottom. Do not use `var(--safe-bottom)` — it was silently resolving to 0px on this device.
 - **Swipe rows: `.tx-row-wrap:last-child .tx-row`** — use this selector for removing the last border, NOT `.tx-row:last-child` which matches every row in the new wrapper structure.
+- **🔁 badge check must use `data.recurring.some()`** — never simplify to `t.recurringId ? ...`. The rule may have been deleted while the transaction still has a recurringId.
+- **`fIsRecurring` must be reset in openAdd() and openAddForDay()** — if not reset, stale `true` from a prior edit bleeds into a new-expense form and shows 🔁 in the header incorrectly.
