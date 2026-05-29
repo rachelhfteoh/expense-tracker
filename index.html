@@ -1564,8 +1564,9 @@ let subSheet    = null; // 'repeat' | 'recurring' | 'cat' | null
 let addViewPrev = 'transactions'; // view to return to when closing add page
 
 // Description & photo form state
-let fDescription = '';
-let fPhoto       = null; // base64 data URL
+let fDescription  = '';
+let fPhoto        = null; // base64 data URL
+let fIsRecurring  = false; // true when editing a transaction that has/had a recurring rule
 
 // Add-category form state
 let catAddMode  = false;
@@ -1828,6 +1829,9 @@ function renderHeader() {
   if (view === 'add') {
     const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Stats', 'cat-detail': 'Detail' };
     const backLbl = backLabels[addViewPrev] || 'Back';
+    const rightSlot = (fMode === 'edit' && fIsRecurring)
+      ? `<span style="width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;font-size:18px;">🔁</span>`
+      : `<span style="width:60px;flex-shrink:0"></span>`;
     el.innerHTML = `
       <div class="header-row">
         <button class="add-page-back-btn" onclick="closeAddView()">
@@ -1835,7 +1839,7 @@ function renderHeader() {
           ${backLbl}
         </button>
         <span class="add-page-header-title">${fMode === 'add' ? 'New Expense' : 'Edit Expense'}</span>
-        <span style="width:60px;flex-shrink:0"></span>
+        ${rightSlot}
       </div>`;
     return;
   }
@@ -1972,7 +1976,7 @@ function txRowHtml(t, cat) {
         <div class="tx-cat">${esc(cat.label)}</div>
       </div>
       <div class="tx-info">
-        <div class="tx-note">${esc(t.note || '—')} ${t.recurringId ? '<span class="tx-recur-badge">🔁</span>' : ''}</div>
+        <div class="tx-note">${esc(t.note || '—')} ${t.recurringId && data.recurring.some(r => r.id === t.recurringId) ? '<span class="tx-recur-badge">🔁</span>' : ''}</div>
       </div>
       <div class="tx-right">
         <span class="tx-amount">${rm(t.amount)}</span>
@@ -1985,7 +1989,7 @@ function catDetailRowHtml(t) {
   return `<div class="cd-row" onclick="openEdit('${t.id}')">
     <div class="cd-note">
       <span>${esc(t.note || '—')}</span>
-      ${t.recurringId ? '<span class="tx-recur-badge">🔁</span>' : ''}
+      ${t.recurringId && data.recurring.some(r => r.id === t.recurringId) ? '<span class="tx-recur-badge">🔁</span>' : ''}
     </div>
     <span class="tx-amount">${rm(t.amount)}</span>
   </div>`;
@@ -2460,11 +2464,13 @@ function buildRecurring() {
 }
 
 function deleteRuleFromView(id) {
-  if (!confirm('Stop this recurring rule? Existing entries will remain.')) return;
+  if (!confirm('Delete all future recurring transactions?')) return;
+  const today = todayStr();
+  data.transactions = data.transactions.filter(t => !(t.recurringId === id && t.date > today));
   data.recurring = data.recurring.filter(r => r.id !== id);
   save();
   renderContent();
-  toast('Rule removed');
+  toast('Future transactions removed');
 }
 
 function selectCalDay(ds) {
@@ -2512,7 +2518,7 @@ function openAdd() {
   fMode = 'add'; fEditId = null;
   fDate = view === 'calendar' ? calSel : view === 'transactions' ? txSelDay : todayStr();
   fAmount = '0.00'; fCat = ''; fNote = ''; fRepeat = 'none';
-  fDescription = ''; fPhoto = null;
+  fDescription = ''; fPhoto = null; fIsRecurring = false;
   activePanel = null;
   view = 'add';
   render();
@@ -2522,7 +2528,7 @@ function openAddForDay(ds) {
   addViewPrev = view;
   fMode = 'add'; fEditId = null;
   fDate = ds; fAmount = '0.00'; fCat = ''; fNote = ''; fRepeat = 'none';
-  fDescription = ''; fPhoto = null;
+  fDescription = ''; fPhoto = null; fIsRecurring = false;
   activePanel = null;
   view = 'add';
   render();
@@ -2536,7 +2542,7 @@ function openEdit(txId) {
   fDate = t.date; fAmount = Number(t.amount).toFixed(2);
   fCat  = t.category; fNote = t.note || ''; fRepeat = 'none';
   fDescription = t.description || '';
-  fPhoto = t.photo || null;
+  fPhoto = t.photo || null; fIsRecurring = !!t.recurringId;
   activePanel = null;
   view = 'add';
   render();
