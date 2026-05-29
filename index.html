@@ -2699,6 +2699,10 @@ function saveTx() {
       tx.date = fDate; tx.amount = amount;
       tx.category = fCat; tx.note = fNote.trim();
       tx.description = fDescription.trim(); tx.photo = fPhoto;
+      if (tx.recurringId) {
+        const rule = data.recurring.find(r => r.id === tx.recurringId);
+        if (rule) { rule.note = fNote.trim(); rule.amount = amount; rule.category = fCat; }
+      }
       save();
       toast('Updated ✓');
     }
