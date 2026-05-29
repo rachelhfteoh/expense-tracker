@@ -911,6 +911,7 @@
       padding: 4px 8px;
     }
     .rule-del:active { color: var(--expense); }
+    .rule-row:last-child { border-bottom: none; }
 
     /* Toast */
     #toast {
@@ -1417,6 +1418,12 @@
       </svg>
       <span class="nav-lbl">Stats</span>
     </button>
+    <button class="nav-btn" id="nb-recurring" onclick="switchView('recurring')">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>
+      </svg>
+      <span class="nav-lbl">Recurring</span>
+    </button>
   </nav>
 </div>
 
@@ -1808,9 +1815,9 @@ function renderNav() {
   const isAdd    = view === 'add';
   const isDetail = view === 'cat-detail';
   document.getElementById('nav').style.display = (isAdd || isDetail) ? 'none' : '';
-  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar' || view === 'transactions' || view === 'stats') ? 'none' : 'flex';
+  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar' || view === 'transactions' || view === 'stats' || view === 'recurring') ? 'none' : 'flex';
   if (isAdd || isDetail) return;
-  ['transactions','calendar','stats'].forEach(v => {
+  ['transactions','calendar','stats','recurring'].forEach(v => {
     document.getElementById('nb-' + v).classList.toggle('active', view === v);
   });
 }
@@ -1883,6 +1890,9 @@ function renderHeader() {
     if (calNavBtns[1]) { calNavBtns[1].disabled = calAtCurrent; calNavBtns[1].style.opacity = calAtCurrent ? '0.3' : ''; }
     initSwipe('cal-nav', prevCal, nextCal);
 
+  } else if (view === 'recurring') {
+    el.innerHTML = `<div class="header-row"><span class="header-title">Recurring</span></div>`;
+
   } else {
     el.innerHTML = `
       <div class="header-row"><span class="header-title">Stats</span></div>
@@ -1901,6 +1911,7 @@ function renderContent() {
   else if (view === 'transactions') el.innerHTML = buildTransactions();
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
   else if (view === 'cat-detail')   el.innerHTML = buildCatDetail();
+  else if (view === 'recurring')    el.innerHTML = buildRecurring();
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
   if (view === 'transactions') { renderTxWeekStrip(); initSwipeRows(); }
@@ -2409,6 +2420,51 @@ function buildCatDetail() {
   }
 
   return html;
+}
+
+// ── Recurring view ────────────────────────────────────────────────────────────
+
+function buildRecurring() {
+  const count = data.recurring.length;
+
+  let html = `<div class="summary-bar">
+    <div class="sum-item">
+      <div class="sum-label">Active Rules</div>
+      <div class="sum-value">${count}</div>
+    </div>
+  </div>`;
+
+  if (!count) {
+    return html + `<div class="empty">
+      <div class="empty-ico">🔁</div>
+      <div class="empty-title">No recurring expenses</div>
+      <div class="empty-sub">Tap 🔁 when adding an expense to set a repeat</div>
+    </div>`;
+  }
+
+  html += `<div style="margin:12px 12px 0;background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(99,102,241,0.09)">`;
+  for (const r of data.recurring) {
+    const cat  = getCat(r.category);
+    const freq = RMAP[r.frequency]?.label || r.frequency;
+    html += `<div class="rule-row">
+      <span class="rule-ico">${cat.emoji}</span>
+      <div class="rule-info">
+        <div class="rule-name">${esc(r.note || cat.label)}</div>
+        <div class="rule-sub">${freq} · ${rm(r.amount)} · since ${fmtFormDate(r.startDate)}</div>
+      </div>
+      <button class="rule-del" onclick="deleteRuleFromView('${r.id}')">✕</button>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function deleteRuleFromView(id) {
+  if (!confirm('Stop this recurring rule? Existing entries will remain.')) return;
+  data.recurring = data.recurring.filter(r => r.id !== id);
+  save();
+  renderContent();
+  toast('Rule removed');
 }
 
 function selectCalDay(ds) {
