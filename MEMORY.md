@@ -312,6 +312,16 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **deleteRuleFromView() updated** — now deletes instances `>= today` (today inclusive, not just future). Confirm message updated to "Delete this and all future recurring transactions?".
 - **Rule rows in Recurring tab are tappable** — `onclick="openRuleEdit(...)"` on `.rule-row`. Delete button uses `event.stopPropagation()` to prevent triggering the row tap.
 
+### Monthly tab and export/import (Session 14)
+- **Monthly tab** is the 5th nav tab (`view = 'monthly'`). `renderHeader()` needs an `else if (view === 'monthly')` branch BEFORE the `else` (Stats) branch — same pattern as recurring.
+- **SVG line chart x-axis labels:** show ALL labels when n ≤ 6 months; show 5 evenly spaced when n > 6. Original code only showed first + last for n < 4, causing April to be hidden with 3 months of data.
+- **Export/Import lives in Monthly tab** behind a settings gear ⚙ icon that opens `#data-action` action sheet — same iOS-style sheet as `#photo-action`. Reuses `.photo-action-*` CSS classes.
+- **PWA standalone storage is isolated from Safari browser storage** — data entered via the home screen icon is NOT visible when opening the same URL in Safari. Always use the home screen icon. Export must also be done from the home screen icon.
+- **Deleting the home screen PWA icon on iOS also deletes its standalone localStorage** — always export before deleting the icon, or data is permanently lost.
+- **Recurring frequency simplified to Monthly only** — quarterly/bi-annual/annual removed. Monthly Commitment = straight sum of all rule amounts (no division). Frequency key `'monthly'` is the only valid value now.
+- **Recurring sub-line format** — changed from `freq · amount · since date` to `category · freq · amount`. "Since" date removed — it's visible in the Edit Rule sheet.
+- **Monthly Commitment in Recurring summary bar** — straight sum of all `data.recurring` amounts. No normalisation needed since all rules are monthly frequency only.
+
 ### Always commit and push before asking Rachel to test (Session 11)
 - Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/), not local files.
 - Every fix must be committed and pushed BEFORE asking her to test — otherwise she sees the old cached version.
@@ -346,3 +356,5 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Delete recurring transaction: remove by ID first, then clean up** — never rely solely on a date filter to remove the target transaction. Always `filter(t => t.id !== id)` first, then separately `filter` future instances. If you only use the date filter, past-dated recurring transactions won't be removed.
 - **Edit Rule sheet amount is `ruleEditCents` (integer cents)** — `saveRuleEdit()` reads `ruleEditCents / 100`. Never revert to a string `ruleEditAmt` — the numpad doesn't write to a string anymore.
 - **`#recurring-sheet` is now the Edit Rule sheet** — it opens from the Recurring tab (not from Transactions header). `openRecurringSheet()` and `renderRecurringSheet()` are replaced by `openRuleEdit()` and `renderRuleEditSheet()`. Do not restore the old functions.
+- **PWA standalone storage ≠ Safari browser storage** — iOS gives PWA home screen apps their own isolated localStorage. Opening the GitHub Pages URL in Safari always shows empty data. Remind Rachel to always use the home screen icon.
+- **Deleting the home screen icon wipes PWA data on iOS** — always export backup first. Do not ask Rachel to delete and re-add the icon without exporting first.

@@ -90,7 +90,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - No build tools, no npm, no bundler
 
 ### Key state variables
-- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail' | 'recurring'`
+- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail' | 'recurring' | 'monthly'`
 - `addViewPrev` — view to return to when closing the add page (e.g. `'transactions'`, `'cat-detail'`)
 - `txYear, txMon` — month displayed in Transactions tab
 - `txWeekOffset` — week offset for the week strip (0 = current week, negative = past weeks)
@@ -137,6 +137,10 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fmtFormDate(ds)` — formats ISO date as "27 May 2026" for display in the date row span
 - `compressImage(dataUrl, cb)` — resizes to max 800px, JPEG 70%, returns via callback
 - `closeAddView()` — closes sub-sheets, resets overlay, sets view=addViewPrev, calls render()
+- `goToMonth(y, m)` — sets txYear/txMon, calls syncTxToMonth(), switches to transactions view
+- `exportData()` — serialises data to JSON, triggers browser download as `expenses-backup.json`
+- `importData(input)` — reads selected .json file, validates, confirms, replaces all data, saves, re-renders
+- `openDataSheet()` / `closeDataSheet()` — shows/hides `#data-action` action sheet
 
 ### Bottom panel helpers (Session 4)
 - `openCalc()` — sets `activePanel='calc'`, inits `calcCents` from `fAmount`, shows `#calc-inner`, calls `updateCalcDisplay()`
@@ -188,9 +192,9 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 
 ---
 
-## Categories (15 selectable + custom + hidden Other)
+## Categories (16 selectable + custom + hidden Other)
 
-🍎 Groceries · 🍽️ Eating Out · 🚗 Transport · 🛍️ Shopping · 🏠 Housing · 💡 Utilities · 🎬 Entertain · 💊 Health · ✨ Beauty · 📚 Education · 🐾 Pets · 💪 Fitness · 🎁 Gifts · ✈️ Travel · 💼 Work · _(❓ Other — hidden from picker, used as code fallback only)_
+🍎 Groceries · 🍽️ Eating Out · 🚗 Transport · 💡 Utilities · 💊 Health · 🌸 Beauty · 💪 Fitness · 🦞 Seafood · 🍿 Snacks · 🥦 Veggies · 🍇 Fruits · 🥐 Pastries · 🏠 Household · 🔔 Subscriptions · 🛡️ Insurance · 🔮 Crystal · _(❓ Other — hidden from picker, used as code fallback only)_
 
 Custom categories: `key: 'custom_<uid>'`, `emoji: '⭐'` (auto), color cycles through `CAT_COLORS[]`. The "Add" tile in the inline category panel opens `#cat-sheet` for name entry only. `getCat()` falls back to 'other' if key not found.
 
@@ -200,13 +204,13 @@ Custom categories: `key: 'custom_<uid>'`, `emoji: '⭐'` (auto), color cycles th
 
 ---
 
-## Repeat Frequencies (5)
+## Repeat Frequencies (2)
 
-Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
+Nothing · Every Month
 
+- Simplified to 2 options only — quarterly/bi-annual/annual removed as not needed
 - `generateRecurring()` runs on every app load; generates missing instances up to today (max 1000 per rule)
 - Editing a recurring transaction ALSO updates the rule's `note`, `amount`, `category` — keeps Recurring tab in sync
-- Recurring rules sheet removed from Transactions header (button deleted); existing rules still generate correctly
 - 🔁 badge in transaction rows: shown only while the rule still exists (`data.recurring.some(r => r.id === t.recurringId)`)
 - 🔁 icon in Edit Expense header: shown whenever `fIsRecurring` is true — permanent marker even after rule deleted
 - `recurringId` is NOT nulled out when a rule is deleted — kept for the Edit header indicator
@@ -230,7 +234,9 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 
 **Category detail (`view = 'cat-detail'`)** — Full-page. Header: `← Stats` + `[emoji] Category` + month subtitle. Nav/FAB hidden. Summary bar (total, count). Transactions for that category in `stYear/stMon`, grouped by date, compact rows (note + amount only). Tap row → edit (returns to cat-detail after save).
 
-**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count). Glass card list of all `data.recurring` rules: emoji, note/category name, frequency · amount · since [date]. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
+**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count + monthly commitment total). Glass card list of all `data.recurring` rules: emoji, note, sub-line shows `category · frequency · amount`. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
+
+**Monthly (`view = 'monthly'`)** — 5th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Summary bar (all-time total + monthly average). SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots, month labels). Month list grouped by year (newest first) — each row: month name, amount in purple, thin relative bar vs max month. Tap row → `goToMonth(y, m)` navigates to that month in Transactions tab. Settings gear opens `#data-action` sheet with Export / Import options.
 
 ### Transaction row layout
 ```
@@ -254,6 +260,7 @@ Note text                             RM X.XX
 
 ## Sheets & Overlays
 
+- `#data-action` — Export/Import action sheet (z-index 550, same style as #photo-action); opened by ⚙ in Monthly header
 - `#add-sheet` — present in HTML but unused (kept to avoid null refs in closeAllSheets)
 - `#repeat-sheet` — repeat picker (slides over add view, z-index 400, shows overlay)
 - `#recurring-sheet` — Edit Rule sheet; opens when tapping a rule row in Recurring tab (z-index 400, shows overlay). Contains: Since (read-only), Category (read-only), Note input, Amount display + numpad, Frequency picker, Save Changes button.
