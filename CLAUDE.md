@@ -116,6 +116,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `catAddMode` — whether the "New Category" name-entry form is open in `#cat-sheet`
 - `newCatLabel` — new category name being typed
 - `monthlyFilterCat` — category key currently filtering the Monthly tab (`''` = all categories)
+- `collapsedYears` — `Set` of year strings currently collapsed in the Monthly tab year list
 
 ### Key helpers
 - `todayStr()` — current date as "YYYY-MM-DD"
@@ -171,6 +172,12 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `closeMonthlyCatPicker()` — hides sheet + overlay, resets `subSheet`
 - `buildMonthly()` filters `data.transactions` by `monthlyFilterCat` before computing `monthMap`; empty string = all transactions (default behaviour unchanged)
 
+### Monthly tab year collapse helpers (Session 16)
+- `toggleYearCollapse(yr)` — adds/removes year string from `collapsedYears`, calls `renderContent()`
+- `collapseAllYears()` — adds all years from `data.transactions` to `collapsedYears`, calls `renderContent()`
+- `expandAllYears()` — clears `collapsedYears`, calls `renderContent()`
+- Year/Month toggle buttons sit in the pill row (right side); Year button active when `collapsedYears.size > 0`
+
 ### Month navigation helpers (Session 8)
 - `weekOffsetForDate(ds)` — returns the integer week offset from the current week to the week containing `ds` (negative = past)
 - `syncTxToMonth()` — sets `txSelDay` to last day of `txYear/txMon` (capped at today), then sets `txWeekOffset` via `weekOffsetForDate`; called by `prevTx()`/`nextTx()` to keep strip in sync
@@ -193,7 +200,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 
 ### Category detail helpers (Session 6)
 - `openCatDetail(key)` — sets `catDetailKey`, `view='cat-detail'`, calls `render()`
-- `closeCatDetail()` — sets `view='stats'`, calls `render()`
+- `closeCatDetail()` — sets `view='stats'`, calls `render()` (back button label shows "Categories")
 - `buildCatDetail()` — renders transactions for `catDetailKey` in `stYear/stMon`; grouped by date, uses `catDetailRowHtml()`
 - `catDetailRowHtml(t)` — compact row: note + amount only (no icon/category label since category shown in header)
 
@@ -235,7 +242,7 @@ Nothing · Every Month
 
 **Calendar** — Month nav (← →, swipe). Future months blocked. Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. FAB hidden.
 
-**Stats** — Month nav (← →, swipe). Future months blocked. FAB hidden. SVG donut chart (r=90, sw=28, 300×225 display, viewBox 400×300, overflow=visible). Category name + % labels for segments ≥10% with leader lines. Category breakdown list (emoji, name, %, amount) — no dots, no bars. `stats-pct`: fixed width 44px, right-aligned. `stats-amt`: fixed width 110px, right-aligned. Tap a category row → cat-detail view.
+**Categories (`view = 'stats'`)** — Month nav (← →, swipe). Future months blocked. FAB hidden. No donut chart — replaced with a single summary bar showing Total Expenses for the month. Category breakdown list below (emoji, name, %, amount). `stats-pct`: fixed width 44px, right-aligned. `stats-amt`: fixed width 110px, right-aligned. Tap a category row → cat-detail view. Nav label and header title show "Categories" (internal view key remains `'stats'`).
 
 **Add/Edit (`view = 'add'`)** — Full-page view. Header: back button (← Trans./Calendar/Stats/Detail) + title (centred, invisible spacer on right). Nav bar and FAB hidden. Form rows: fixed 44px height each. Fields: Date + 🔁 icon-only repeat button, Amount (tap → calc panel), Category (tap → cat panel), Note, Description (min-height 90px) + camera. Bottom panel switches between calc and category grid. Fixed bottom action bar: Save (left, purple) + Delete (right, red outlined) — always visible; Delete on new expense = discard.
 
@@ -243,7 +250,7 @@ Nothing · Every Month
 
 **Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count + monthly commitment total). Glass card list of all `data.recurring` rules: emoji, note, sub-line shows `category · frequency · amount`. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
 
-**Monthly (`view = 'monthly'`)** — 5th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Filter pill at top (tap → `#monthly-filter-sheet` category picker). When no filter: summary bar shows all-time total + monthly avg; chart and list show all transactions. When filtered: summary bar shows all-time total + Peak Month (name + year); chart and list show that category only; peak month row gets a "Peak" purple badge. SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots — peak dot larger). Month list grouped by year (newest first). Tap row → `goToMonth(y, m)`. Settings gear opens `#data-action` sheet with Export / Import options.
+**Monthly (`view = 'monthly'`)** — 5th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Top row: filter pill (left) + Year/Month toggle buttons (right). No filter: no summary bar, chart and list show all transactions. Filtered: summary bar shows Peak Month + Peak Amount; chart and list show that category only; peak month row gets a "Peak" purple badge. SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots — peak dot larger). Month list grouped by year (newest first); year header shows year label (left) + year total in purple (right); tap header to collapse/expand that year's months. Month rows: month name + amount only (no bar graph). Year/Month toggle: Year button collapses all years, Month button expands all. Settings gear opens `#data-action` sheet with Export / Import options.
 
 ### Transaction row layout
 ```

@@ -331,6 +331,16 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Picker only shows categories with actual transactions** — `getAllCats().filter(c => c.key !== 'other' && usedKeys.has(c.key))` — avoids showing empty categories that would produce a blank chart.
 - **`monthlyFilterCat` persists within the session** — intentional, so switching to check a transaction and coming back keeps the filter. Not reset on `switchView()`.
 
+### Monthly tab improvements and Stats rename (Session 16)
+- **Recurring rule edit syncs ALL transactions** — `saveRuleEdit()` previously filtered `t.date >= today`, so past instances kept the old amount. Fixed to update all transactions with `t.recurringId === ruleEditId` regardless of date. For a personal tracker, correcting an amount should apply everywhere.
+- **Stats tab renamed to Categories** — nav label, header title, and back button label all say "Categories". Internal `view` key stays `'stats'` — do NOT change the view key or all navigation breaks.
+- **`buildDonut()` removed entirely** — donut chart deleted from `buildStats()`. Replaced with a simple summary bar showing Total Expenses. The `stats-chart-section` CSS class remains but is unused — safe to leave.
+- **Monthly tab year collapse** — `collapsedYears` (a `Set`) tracks which years are collapsed. `toggleYearCollapse(yr)`, `collapseAllYears()`, `expandAllYears()` all call `renderContent()`. Year/Month buttons derive active state from `collapsedYears.size > 0`.
+- **Month rows tapping vs year header tapping** — month rows use `event.stopPropagation()` so tapping a month doesn't also trigger the year header's collapse toggle.
+- **iOS PWA cache is not controllable via meta tags** — no-cache meta tags were added but do not reliably bust the iOS PWA standalone cache. The only reliable fix is delete icon + re-add. Warn Rachel to export data first before deleting the icon.
+- **Test in Safari during active development** — Rachel's workflow: test all changes in Safari browser, only do the home screen delete+re-add once a batch of changes is stable.
+- **Summary bar with single item** — use `style="flex:1"` on the single `sum-item` to make it full-width. Without it, the item only takes half the bar width.
+
 ### Always commit and push before asking Rachel to test (Session 11)
 - Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/), not local files.
 - Every fix must be committed and pushed BEFORE asking her to test — otherwise she sees the old cached version.
@@ -369,3 +379,6 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Deleting the home screen icon wipes PWA data on iOS** — always export backup first. Do not ask Rachel to delete and re-add the icon without exporting first.
 - **`monthlyFilterCat` must be checked in `buildMonthly()`** — if you ever split the Monthly view into sub-functions, make sure each one respects this state. The filter is applied once at the top of `buildMonthly()` via `data.transactions.filter(...)` — don't re-filter inside sub-functions or you'll double-filter.
 - **`#monthly-filter-sheet` must be in `closeAllSheets()`** — it was added to the array. If you add more sheets in future, follow the same pattern.
+- **`view === 'stats'` is the Categories tab** — the internal key is still `'stats'` even though the UI says "Categories". Never rename the key or all navigation, back labels, and renderContent() branching will break.
+- **`saveRuleEdit()` must update ALL linked transactions** — the filter is `t.recurringId === ruleEditId` with NO date restriction. Do not add `&& t.date >= today` back — that was the original bug.
+- **`collapsedYears` is a `Set`, not an array** — use `.has()`, `.add()`, `.delete()`, `.clear()`. Do not use `.includes()` or array methods on it.
