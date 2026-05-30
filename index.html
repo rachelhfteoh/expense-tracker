@@ -1486,6 +1486,16 @@
   <div class="sheet-body" id="recurring-body"></div>
 </div>
 
+<!-- Monthly Category Filter Sheet -->
+<div class="sheet" id="monthly-filter-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Filter by Category</span>
+    <button class="sheet-x" onclick="closeMonthlyCatPicker()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
+  </div>
+  <div class="sheet-body" id="monthly-filter-body"></div>
+</div>
+
 <!-- Category Sheet -->
 <div class="sheet" id="cat-sheet">
   <div class="sheet-handle"></div>
@@ -1597,6 +1607,7 @@ let ruleEditCat   = '';
 // Add-category form state
 let catAddMode  = false;
 let newCatLabel = '';
+let monthlyFilterCat = ''; // '' = all categories; category key = filtered view
 
 const CAT_COLORS = [
   '#10b981','#f59e0b','#3b82f6','#ec4899',
@@ -2513,25 +2524,67 @@ function buildRecurring() {
 }
 
 function buildMonthly() {
-  // Build month -> total map
+  const filterCat = monthlyFilterCat ? getCat(monthlyFilterCat) : null;
+  const pillLabel = filterCat ? `${filterCat.emoji} ${filterCat.label}` : 'All categories';
+  const pillHtml = `<div style="padding:10px 16px 4px">
+    <button onclick="openMonthlyCatPicker()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.9);border:1.5px solid ${filterCat ? 'rgba(124,58,237,0.35)' : 'rgba(0,0,0,0.1)'};border-radius:20px;padding:7px 14px;font-size:13px;font-weight:600;color:${filterCat ? '#7c3aed' : '#374151'};cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+      ${pillLabel}
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  </div>`;
+
+  // Build month -> total map (filtered by category if set)
+  const txs = monthlyFilterCat
+    ? data.transactions.filter(t => t.category === monthlyFilterCat)
+    : data.transactions;
+
   const monthMap = {};
-  for (const t of data.transactions) {
+  for (const t of txs) {
     const key = t.date.slice(0, 7); // "YYYY-MM"
     monthMap[key] = (monthMap[key] || 0) + Number(t.amount);
   }
   const keys = Object.keys(monthMap).sort().reverse(); // newest first
 
   if (!keys.length) {
-    return `<div class="empty">
-      <div class="empty-ico">📅</div>
-      <div class="empty-title">No expenses yet</div>
-      <div class="empty-sub">Your monthly totals will appear here</div>
+    return pillHtml + `<div class="empty">
+      <div class="empty-ico">${filterCat ? filterCat.emoji : '📅'}</div>
+      <div class="empty-title">${filterCat ? `No ${filterCat.label} expenses` : 'No expenses yet'}</div>
+      <div class="empty-sub">${filterCat ? 'No transactions for this category' : 'Your monthly totals will appear here'}</div>
     </div>`;
   }
 
   const allTimeTotal = keys.reduce((s, k) => s + monthMap[k], 0);
-  const avg = allTimeTotal / keys.length;
   const maxVal = Math.max(...keys.map(k => monthMap[k]));
+  const maxKey = keys.find(k => monthMap[k] === maxVal); // peak month key
+
+  // Summary bar — differs when filtered
+  let summaryHtml;
+  if (filterCat) {
+    const peakMo = parseInt(maxKey.slice(5, 7)) - 1;
+    const peakYr = maxKey.slice(0, 4);
+    summaryHtml = `<div class="summary-bar">
+      <div class="sum-item">
+        <div class="sum-label">All Time</div>
+        <div class="sum-value">${rm(allTimeTotal)}</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Peak Month</div>
+        <div class="sum-value">${MONTHS[peakMo].slice(0,3)} ${peakYr}</div>
+      </div>
+    </div>`;
+  } else {
+    const avg = allTimeTotal / keys.length;
+    summaryHtml = `<div class="summary-bar">
+      <div class="sum-item">
+        <div class="sum-label">All Time</div>
+        <div class="sum-value">${rm(allTimeTotal)}</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Monthly Avg</div>
+        <div class="sum-value">${rm(avg)}</div>
+      </div>
+    </div>`;
+  }
 
   // ── Line chart (up to last 12 months, oldest→newest left→right) ──────────
   const chartKeys = keys.slice().reverse().slice(-12); // oldest first, max 12
@@ -2584,10 +2637,10 @@ function buildMonthly() {
     return `<text x="${pt.x}" y="${H - 4}" text-anchor="middle" fill="#9ca3af" font-size="9" font-family="inherit">${MONTHS[mo].slice(0,3)}</text>`;
   }).join('');
 
-  // dots + tooltips (highlight max month)
+  // dots — highlight peak month
   const dots = pts.map(pt => {
-    const isMax = pt.v === maxVal;
-    return `<circle cx="${pt.x}" cy="${pt.y}" r="${isMax ? 4.5 : 3}" fill="${isMax ? '#7c3aed' : '#a78bfa'}" stroke="white" stroke-width="1.5"/>`;
+    const isPeak = pt.v === maxVal;
+    return `<circle cx="${pt.x}" cy="${pt.y}" r="${isPeak ? 4.5 : 3}" fill="${isPeak ? '#7c3aed' : '#a78bfa'}" stroke="white" stroke-width="1.5"/>`;
   }).join('');
 
   const gradId = 'mg' + Date.now();
@@ -2605,16 +2658,7 @@ function buildMonthly() {
       ${xLabels}
     </svg>`;
 
-  let html = `<div class="summary-bar">
-    <div class="sum-item">
-      <div class="sum-label">All Time</div>
-      <div class="sum-value">${rm(allTimeTotal)}</div>
-    </div>
-    <div class="sum-item">
-      <div class="sum-label">Monthly Avg</div>
-      <div class="sum-value">${rm(avg)}</div>
-    </div>
-  </div>
+  let html = pillHtml + summaryHtml + `
   <div style="margin:12px 12px 0;background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;padding:14px 12px 10px;box-shadow:0 2px 14px rgba(99,102,241,0.09)">
     ${chartSvg}
   </div>`;
@@ -2638,11 +2682,15 @@ function buildMonthly() {
       const mo = parseInt(k.slice(5, 7), 10) - 1;
       const total = monthMap[k];
       const pct = maxVal > 0 ? (total / maxVal) * 100 : 0;
+      const isPeak = k === maxKey;
       const isLast = i === yrKeys.length - 1;
       html += `<div onclick="goToMonth(${yr},${mo})" style="padding:12px 16px;cursor:pointer${isLast ? '' : ';border-bottom:1px solid rgba(0,0,0,0.05)'}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
           <span style="font-size:14px;font-weight:600;color:#111827">${MONTHS[mo]}</span>
-          <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${isPeak ? `<span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 6px;border-radius:6px">Peak</span>` : ''}
+            <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
+          </div>
         </div>
         <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden">
           <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
@@ -2653,6 +2701,38 @@ function buildMonthly() {
   }
   html += `</div>`;
   return html;
+}
+
+function openMonthlyCatPicker() {
+  const usedKeys = new Set(data.transactions.map(t => t.category));
+  const availCats = getAllCats().filter(c => c.key !== 'other' && usedKeys.has(c.key));
+  let html = `<div class="rep-option${!monthlyFilterCat ? ' sel' : ''}" onclick="pickMonthlyCat('')">
+    <span>All categories</span>
+    ${!monthlyFilterCat ? '<span class="rep-check">✓</span>' : ''}
+  </div>`;
+  for (const c of availCats) {
+    const sel = c.key === monthlyFilterCat;
+    html += `<div class="rep-option${sel ? ' sel' : ''}" onclick="pickMonthlyCat('${c.key}')">
+      <span>${c.emoji} ${esc(c.label)}</span>
+      ${sel ? '<span class="rep-check">✓</span>' : ''}
+    </div>`;
+  }
+  document.getElementById('monthly-filter-body').innerHTML = html;
+  subSheet = 'monthly-filter';
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('monthly-filter-sheet').classList.add('show');
+}
+
+function pickMonthlyCat(key) {
+  monthlyFilterCat = key;
+  closeMonthlyCatPicker();
+  renderContent();
+}
+
+function closeMonthlyCatPicker() {
+  document.getElementById('monthly-filter-sheet').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  subSheet = null;
 }
 
 function goToMonth(y, m) {
@@ -3316,7 +3396,7 @@ function hideSheet(id) {
 
 function closeAllSheets() {
   document.getElementById('overlay').classList.remove('show');
-  ['add-sheet','repeat-sheet','recurring-sheet','cat-sheet'].forEach(hideSheet);
+  ['add-sheet','repeat-sheet','recurring-sheet','cat-sheet','monthly-filter-sheet'].forEach(hideSheet);
   subSheet = null;
   closeCalc();
 }
@@ -3329,6 +3409,7 @@ function overlayClick() {
   }
   else if (subSheet === 'recurring') { closeRecurringSheet(); document.getElementById('overlay').classList.remove('show'); }
   else if (subSheet === 'cat') { closeCatSheet(); }
+  else if (subSheet === 'monthly-filter') { closeMonthlyCatPicker(); }
   else if (view !== 'add') { closeAllSheets(); }
 }
 
