@@ -1393,6 +1393,12 @@
       -webkit-tap-highlight-color: transparent;
     }
     .photo-action-cancel:active { background: #f5f3ff; }
+    #data-action {
+      position: fixed; inset: 0; z-index: 550; display: none;
+      flex-direction: column; justify-content: flex-end;
+      padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    }
+    #data-action.show { display: flex; }
   </style>
 </head>
 <body>
@@ -1431,6 +1437,17 @@
       <span class="nav-lbl">Monthly</span>
     </button>
   </nav>
+</div>
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+<div id="data-action">
+  <div class="photo-action-backdrop" onclick="closeDataSheet()"></div>
+  <div class="photo-action-inner">
+    <div class="photo-action-menu">
+      <button class="photo-action-item" onclick="exportData()">⬇️ Export backup</button>
+      <button class="photo-action-item" onclick="closeDataSheet();document.getElementById('import-file').click()">⬆️ Import backup</button>
+    </div>
+    <button class="photo-action-cancel" onclick="closeDataSheet()">Cancel</button>
+  </div>
 </div>
 
 <button id="fab" onclick="openAdd()">
@@ -1884,11 +1901,13 @@ function renderHeader() {
     </div>`;
 
   if (view === 'transactions') {
+    const txMonthTotal = totalMonth(txYear, txMon);
     el.innerHTML = `
       <div class="header-row">
         <span class="header-title">Transactions</span>
       </div>
-      ${navHtml('tx-nav','prevTx','nextTx')}`;
+      ${navHtml('tx-nav','prevTx','nextTx')}
+      <div style="text-align:center;padding:0 0 10px;margin-top:-8px;font-size:11px;font-weight:600;color:#374151">${rm(txMonthTotal)}</div>`;
     document.getElementById('tx-nav-lbl').textContent = MONTHS[txMon] + ' ' + txYear;
     const txNavBtns = document.querySelectorAll('#tx-nav .mnav-btn');
     const txAtCurrent = txYear === new Date().getFullYear() && txMon === new Date().getMonth();
@@ -1909,7 +1928,12 @@ function renderHeader() {
     el.innerHTML = `<div class="header-row"><span class="header-title">Recurring</span></div>`;
 
   } else if (view === 'monthly') {
-    el.innerHTML = `<div class="header-row"><span class="header-title">Monthly</span></div>`;
+    el.innerHTML = `<div class="header-row">
+      <span class="header-title">Monthly</span>
+      <button class="header-action" onclick="openDataSheet()" style="padding:4px 8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>`;
 
   } else {
     el.innerHTML = `
@@ -2475,7 +2499,7 @@ function buildRecurring() {
       <span class="rule-ico">${cat.emoji}</span>
       <div class="rule-info">
         <div class="rule-name">${esc(r.note || cat.label)}</div>
-        <div class="rule-sub">${freq} · ${rm(r.amount)} · since ${fmtFormDate(r.startDate)}</div>
+        <div class="rule-sub">${cat.label} · ${freq} · ${rm(r.amount)}</div>
       </div>
       <button class="rule-del" onclick="event.stopPropagation();deleteRuleFromView('${r.id}')">✕</button>
     </div>`;
@@ -2632,6 +2656,55 @@ function goToMonth(y, m) {
   txMon = Number(m);
   syncTxToMonth();
   switchView('transactions');
+}
+
+function openDataSheet() {
+  document.getElementById('data-action').classList.add('show');
+}
+function closeDataSheet() {
+  document.getElementById('data-action').classList.remove('show');
+}
+
+function exportData() {
+  closeDataSheet();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'expenses-backup.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Data exported');
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!Array.isArray(parsed.transactions)) throw new Error('Invalid file');
+      if (!confirm(`Import ${parsed.transactions.length} transactions? This will replace all current data.`)) {
+        input.value = '';
+        return;
+      }
+      data.transactions = parsed.transactions || [];
+      data.recurring    = parsed.recurring    || [];
+      data.customCats   = parsed.customCats   || [];
+      data.hiddenCats   = parsed.hiddenCats   || [];
+      save();
+      render();
+      toast(`Imported ${data.transactions.length} transactions`);
+    } catch(err) {
+      toast('Invalid backup file');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function deleteRuleFromView(id) {
