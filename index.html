@@ -1424,6 +1424,12 @@
       </svg>
       <span class="nav-lbl">Recurring</span>
     </button>
+    <button class="nav-btn" id="nb-monthly" onclick="switchView('monthly')">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span class="nav-lbl">Monthly</span>
+    </button>
   </nav>
 </div>
 
@@ -1821,9 +1827,9 @@ function renderNav() {
   const isAdd    = view === 'add';
   const isDetail = view === 'cat-detail';
   document.getElementById('nav').style.display = (isAdd || isDetail) ? 'none' : '';
-  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar' || view === 'transactions' || view === 'stats' || view === 'recurring') ? 'none' : 'flex';
+  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar' || view === 'transactions' || view === 'stats' || view === 'recurring' || view === 'monthly') ? 'none' : 'flex';
   if (isAdd || isDetail) return;
-  ['transactions','calendar','stats','recurring'].forEach(v => {
+  ['transactions','calendar','stats','recurring','monthly'].forEach(v => {
     document.getElementById('nb-' + v).classList.toggle('active', view === v);
   });
 }
@@ -1902,6 +1908,9 @@ function renderHeader() {
   } else if (view === 'recurring') {
     el.innerHTML = `<div class="header-row"><span class="header-title">Recurring</span></div>`;
 
+  } else if (view === 'monthly') {
+    el.innerHTML = `<div class="header-row"><span class="header-title">Monthly</span></div>`;
+
   } else {
     el.innerHTML = `
       <div class="header-row"><span class="header-title">Stats</span></div>
@@ -1921,6 +1930,7 @@ function renderContent() {
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
   else if (view === 'cat-detail')   el.innerHTML = buildCatDetail();
   else if (view === 'recurring')    el.innerHTML = buildRecurring();
+  else if (view === 'monthly')      el.innerHTML = buildMonthly();
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
   if (view === 'transactions') { renderTxWeekStrip(); initSwipeRows(); }
@@ -2472,6 +2482,156 @@ function buildRecurring() {
   }
   html += `</div>`;
   return html;
+}
+
+function buildMonthly() {
+  // Build month -> total map
+  const monthMap = {};
+  for (const t of data.transactions) {
+    const key = t.date.slice(0, 7); // "YYYY-MM"
+    monthMap[key] = (monthMap[key] || 0) + Number(t.amount);
+  }
+  const keys = Object.keys(monthMap).sort().reverse(); // newest first
+
+  if (!keys.length) {
+    return `<div class="empty">
+      <div class="empty-ico">📅</div>
+      <div class="empty-title">No expenses yet</div>
+      <div class="empty-sub">Your monthly totals will appear here</div>
+    </div>`;
+  }
+
+  const allTimeTotal = keys.reduce((s, k) => s + monthMap[k], 0);
+  const avg = allTimeTotal / keys.length;
+  const maxVal = Math.max(...keys.map(k => monthMap[k]));
+
+  // ── Line chart (up to last 12 months, oldest→newest left→right) ──────────
+  const chartKeys = keys.slice().reverse().slice(-12); // oldest first, max 12
+  const n = chartKeys.length;
+  const W = 340, H = 110, PAD_L = 8, PAD_R = 8, PAD_T = 16, PAD_B = 28;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+  const pts = chartKeys.map((k, i) => {
+    const x = PAD_L + (n === 1 ? plotW / 2 : i * plotW / (n - 1));
+    const y = PAD_T + plotH - (maxVal > 0 ? (monthMap[k] / maxVal) * plotH : 0);
+    return { x, y, k, v: monthMap[k] };
+  });
+
+  // smooth polyline via cardinal spline control points
+  function cardinalPoints(p) {
+    if (p.length < 2) return `M ${p[0].x} ${p[0].y}`;
+    let d = `M ${p[0].x} ${p[0].y}`;
+    for (let i = 0; i < p.length - 1; i++) {
+      const p0 = p[Math.max(i - 1, 0)];
+      const p1 = p[i];
+      const p2 = p[i + 1];
+      const p3 = p[Math.min(i + 2, p.length - 1)];
+      const t = 0.3;
+      const cp1x = p1.x + (p2.x - p0.x) * t;
+      const cp1y = p1.y + (p2.y - p0.y) * t;
+      const cp2x = p2.x - (p3.x - p1.x) * t;
+      const cp2y = p2.y - (p3.y - p1.y) * t;
+      d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    }
+    return d;
+  }
+
+  const linePath = cardinalPoints(pts);
+  // area fill: close path along bottom
+  const firstPt = pts[0], lastPt = pts[pts.length - 1];
+  const areaPath = linePath + ` L ${lastPt.x} ${PAD_T + plotH} L ${firstPt.x} ${PAD_T + plotH} Z`;
+
+  // x-axis labels: show first, last, and evenly spaced if >4 points
+  const labelIdxs = new Set([0, n - 1]);
+  if (n <= 6) {
+    for (let i = 1; i < n - 1; i++) labelIdxs.add(i);
+  } else {
+    labelIdxs.add(Math.round(n / 4));
+    labelIdxs.add(Math.round(n / 2));
+    labelIdxs.add(Math.round(3 * n / 4));
+  }
+  const xLabels = pts.map((pt, i) => {
+    if (!labelIdxs.has(i)) return '';
+    const mo = parseInt(pt.k.slice(5, 7), 10) - 1;
+    return `<text x="${pt.x}" y="${H - 4}" text-anchor="middle" fill="#9ca3af" font-size="9" font-family="inherit">${MONTHS[mo].slice(0,3)}</text>`;
+  }).join('');
+
+  // dots + tooltips (highlight max month)
+  const dots = pts.map(pt => {
+    const isMax = pt.v === maxVal;
+    return `<circle cx="${pt.x}" cy="${pt.y}" r="${isMax ? 4.5 : 3}" fill="${isMax ? '#7c3aed' : '#a78bfa'}" stroke="white" stroke-width="1.5"/>`;
+  }).join('');
+
+  const gradId = 'mg' + Date.now();
+  const chartSvg = `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" overflow="visible" style="display:block">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      <path d="${areaPath}" fill="url(#${gradId})"/>
+      <path d="${linePath}" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+      ${xLabels}
+    </svg>`;
+
+  let html = `<div class="summary-bar">
+    <div class="sum-item">
+      <div class="sum-label">All Time</div>
+      <div class="sum-value">${rm(allTimeTotal)}</div>
+    </div>
+    <div class="sum-item">
+      <div class="sum-label">Monthly Avg</div>
+      <div class="sum-value">${rm(avg)}</div>
+    </div>
+  </div>
+  <div style="margin:12px 12px 0;background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;padding:14px 12px 10px;box-shadow:0 2px 14px rgba(99,102,241,0.09)">
+    ${chartSvg}
+  </div>`;
+
+  // ── Month list grouped by year ────────────────────────────────────────────
+  const byYear = {};
+  for (const k of keys) {
+    const yr = k.slice(0, 4);
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(k);
+  }
+  const years = Object.keys(byYear).sort().reverse();
+
+  html += `<div style="padding:0 12px 80px">`;
+  for (const yr of years) {
+    const yrKeys = byYear[yr];
+    html += `<div style="padding:12px 4px 4px;font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:0.05em">${yr}</div>
+      <div style="background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(99,102,241,0.09);margin-bottom:12px">`;
+    for (let i = 0; i < yrKeys.length; i++) {
+      const k = yrKeys[i];
+      const mo = parseInt(k.slice(5, 7), 10) - 1;
+      const total = monthMap[k];
+      const pct = maxVal > 0 ? (total / maxVal) * 100 : 0;
+      const isLast = i === yrKeys.length - 1;
+      html += `<div onclick="goToMonth(${yr},${mo})" style="padding:12px 16px;cursor:pointer${isLast ? '' : ';border-bottom:1px solid rgba(0,0,0,0.05)'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+          <span style="font-size:14px;font-weight:600;color:#111827">${MONTHS[mo]}</span>
+          <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
+        </div>
+        <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function goToMonth(y, m) {
+  txYear = Number(y);
+  txMon = Number(m);
+  syncTxToMonth();
+  switchView('transactions');
 }
 
 function deleteRuleFromView(id) {
