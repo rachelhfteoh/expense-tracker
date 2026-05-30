@@ -1543,11 +1543,8 @@ const CATS = [
 const CAT = Object.fromEntries(CATS.map(c => [c.key, c]));
 
 const REPEATS = [
-  { key:'none',         label:'Nothing' },
-  { key:'monthly',      label:'Every Month' },
-  { key:'every3months', label:'Every 3 Months' },
-  { key:'every6months', label:'Every 6 Months' },
-  { key:'annually',     label:'Annually' },
+  { key:'none',    label:'Nothing' },
+  { key:'monthly', label:'Every Month' },
 ];
 
 const RMAP = Object.fromEntries(REPEATS.map(r => [r.key, r]));
@@ -2477,11 +2474,7 @@ function buildCatDetail() {
 function buildRecurring() {
   const count = data.recurring.length;
 
-  const freqDivisor = { monthly: 1, every3months: 3, every6months: 6, annually: 12 };
-  const monthlyTotal = data.recurring.reduce((s, r) => {
-    const div = freqDivisor[r.frequency] || 1;
-    return s + Number(r.amount) / div;
-  }, 0);
+  const monthlyTotal = data.recurring.reduce((s, r) => s + Number(r.amount), 0);
 
   let html = `<div class="summary-bar">
     <div class="sum-item">
