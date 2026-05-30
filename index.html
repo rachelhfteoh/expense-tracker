@@ -1425,7 +1425,7 @@
       <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
       </svg>
-      <span class="nav-lbl">Stats</span>
+      <span class="nav-lbl">Categories</span>
     </button>
     <button class="nav-btn" id="nb-recurring" onclick="switchView('recurring')">
       <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1868,7 +1868,7 @@ function renderHeader() {
   const el = document.getElementById('header');
 
   if (view === 'add') {
-    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Stats', 'cat-detail': 'Detail' };
+    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Categories', 'cat-detail': 'Detail' };
     const backLbl = backLabels[addViewPrev] || 'Back';
     const rightSlot = (fMode === 'edit' && fIsRecurring)
       ? `<span style="width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;font-size:18px;">🔁</span>`
@@ -1891,7 +1891,7 @@ function renderHeader() {
       <div class="header-row">
         <button class="add-page-back-btn" onclick="closeCatDetail()">
           <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 1 1 7 7 13"/></svg>
-          Stats
+          Categories
         </button>
         <div style="text-align:center;flex:1">
           <div class="add-page-header-title">${cat.emoji} ${cat.label}</div>
@@ -1950,7 +1950,7 @@ function renderHeader() {
 
   } else {
     el.innerHTML = `
-      <div class="header-row"><span class="header-title">Stats</span></div>
+      <div class="header-row"><span class="header-title">Categories</span></div>
       ${navHtml('st-nav','prevSt','nextSt')}`;
     document.getElementById('st-nav-lbl').textContent = MONTHS[stMon] + ' ' + stYear;
     const stNavBtns = document.querySelectorAll('#st-nav .mnav-btn');
@@ -2138,21 +2138,20 @@ function buildStats() {
     .map(([k, v]) => ({ ...getCat(k), amount: v }))
     .sort((a, b) => b.amount - a.amount);
 
-  const chart = buildDonut(segs, total);
-
-  let html = `<div class="stats-chart-section">
-    ${chart}
-    <div class="stats-total-label">Total Expenses</div>
-    <div class="stats-total-value">${rm(total)}</div>
-  </div>`;
-
   if (!segs.length) {
-    return html + `<div class="empty">
-      <div class="empty-ico">📊</div>
+    return `<div class="empty">
+      <div class="empty-ico">🗂️</div>
       <div class="empty-title">No data yet</div>
       <div class="empty-sub">Add expenses to see the breakdown</div>
     </div>`;
   }
+
+  let html = `<div class="summary-bar">
+    <div class="sum-item" style="flex:1">
+      <div class="sum-label">Total Expenses</div>
+      <div class="sum-value">${rm(total)}</div>
+    </div>
+  </div>`;
 
   html += `<div class="stats-cat-list">`;
   for (const s of segs) {
@@ -2167,48 +2166,6 @@ function buildStats() {
   html += `</div>`;
 
   return html;
-}
-
-function buildDonut(segs, total) {
-  const cx = 200, cy = 150, r = 90, sw = 28;
-  const circ = 2 * Math.PI * r;
-
-  if (!segs.length) {
-    return `<svg width="300" height="225" viewBox="0 0 400 300" style="display:block;margin:0 auto">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="${sw}"/>
-    </svg>`;
-  }
-
-  let offset = 0, paths = '', labels = '';
-  for (const s of segs) {
-    const pct  = total > 0 ? s.amount / total : 0;
-    const dash = pct * circ;
-    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${sw}"
-      stroke-dasharray="${dash.toFixed(2)} ${(circ - dash).toFixed(2)}"
-      stroke-dashoffset="${(-offset).toFixed(2)}"
-      transform="rotate(-90 ${cx} ${cy})"/>`;
-
-    if (pct >= 0.10) {
-      const midA   = -Math.PI / 2 + (offset + dash / 2) / r;
-      const lineR  = r + sw / 2 + 8;
-      const lblR   = r + sw / 2 + 28;
-      const lx1    = cx + lineR * Math.cos(midA);
-      const ly1    = cy + lineR * Math.sin(midA);
-      const tx     = cx + lblR  * Math.cos(midA);
-      const ty     = cy + lblR  * Math.sin(midA);
-      const anchor = Math.cos(midA) < -0.15 ? 'end' : Math.cos(midA) > 0.15 ? 'start' : 'middle';
-      const name   = s.label.length > 10 ? s.label.slice(0, 9) + '…' : s.label;
-      labels += `<line x1="${lx1.toFixed(1)}" y1="${ly1.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="${s.color}" stroke-width="2" stroke-linecap="round"/>
-      <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-family="Plus Jakarta Sans,sans-serif" text-anchor="${anchor}" font-weight="700">
-        <tspan x="${tx.toFixed(1)}" dy="-9" font-size="16" fill="#374151">${name}</tspan>
-        <tspan x="${tx.toFixed(1)}" dy="20" font-size="14" fill="${s.color}">${Math.round(pct * 100)}%</tspan>
-      </text>`;
-    }
-
-    offset += dash;
-  }
-
-  return `<svg width="300" height="225" viewBox="0 0 400 300" overflow="visible" style="display:block;margin:0 auto">${paths}${labels}</svg>`;
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
