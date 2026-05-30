@@ -2477,10 +2477,20 @@ function buildCatDetail() {
 function buildRecurring() {
   const count = data.recurring.length;
 
+  const freqDivisor = { monthly: 1, every3months: 3, every6months: 6, annually: 12 };
+  const monthlyTotal = data.recurring.reduce((s, r) => {
+    const div = freqDivisor[r.frequency] || 1;
+    return s + Number(r.amount) / div;
+  }, 0);
+
   let html = `<div class="summary-bar">
     <div class="sum-item">
       <div class="sum-label">Active Rules</div>
       <div class="sum-value">${count}</div>
+    </div>
+    <div class="sum-item">
+      <div class="sum-label">Monthly Commitment</div>
+      <div class="sum-value">${rm(monthlyTotal)}</div>
     </div>
   </div>`;
 
