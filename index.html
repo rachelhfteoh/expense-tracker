@@ -2574,13 +2574,7 @@ function buildMonthly() {
       </div>
     </div>`;
   } else {
-    const avg = allTimeTotal / keys.length;
-    summaryHtml = `<div class="summary-bar">
-      <div class="sum-item" style="flex:1">
-        <div class="sum-label">Monthly Avg</div>
-        <div class="sum-value">${rm(avg)}</div>
-      </div>
-    </div>`;
+    summaryHtml = '';
   }
 
   // ── Line chart (up to last 12 months, oldest→newest left→right) ──────────
