@@ -3190,7 +3190,7 @@ function saveRuleEdit() {
   r.frequency = ruleEditFreq;
   const today = todayStr();
   data.transactions
-    .filter(t => t.recurringId === ruleEditId && t.date >= today)
+    .filter(t => t.recurringId === ruleEditId)
     .forEach(t => { t.note = r.note; t.amount = r.amount; });
   if (freqChanged) {
     data.transactions = data.transactions.filter(t => !(t.recurringId === ruleEditId && t.date > today));
