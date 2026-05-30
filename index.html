@@ -2530,11 +2530,16 @@ function buildRecurring() {
 function buildMonthly() {
   const filterCat = monthlyFilterCat ? getCat(monthlyFilterCat) : null;
   const pillLabel = filterCat ? `${filterCat.emoji} ${filterCat.label}` : 'All categories';
-  const pillHtml = `<div style="padding:10px 16px 4px">
+  const yearView = collapsedYears.size > 0;
+  const pillHtml = `<div style="padding:10px 16px 4px;display:flex;align-items:center;justify-content:space-between">
     <button onclick="openMonthlyCatPicker()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.9);border:1.5px solid ${filterCat ? 'rgba(124,58,237,0.35)' : 'rgba(0,0,0,0.1)'};border-radius:20px;padding:7px 14px;font-size:13px;font-weight:600;color:${filterCat ? '#7c3aed' : '#374151'};cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
       ${pillLabel}
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
+    <div style="display:flex;background:rgba(255,255,255,0.9);border:1.5px solid rgba(0,0,0,0.08);border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+      <button onclick="collapseAllYears()" style="padding:7px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;background:${yearView ? '#7c3aed' : 'transparent'};color:${yearView ? '#fff' : '#6b7280'}">Year</button>
+      <button onclick="expandAllYears()" style="padding:7px 14px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;background:${yearView ? 'transparent' : '#7c3aed'};color:${yearView ? '#6b7280' : '#fff'}">Month</button>
+    </div>
   </div>`;
 
   // Build month -> total map (filtered by category if set)
@@ -2684,19 +2689,13 @@ function buildMonthly() {
         const k = yrKeys[i];
         const mo = parseInt(k.slice(5, 7), 10) - 1;
         const total = monthMap[k];
-        const pct = maxVal > 0 ? (total / maxVal) * 100 : 0;
         const isPeak = k === maxKey;
         const isLast = i === yrKeys.length - 1;
-        html += `<div onclick="event.stopPropagation();goToMonth(${yr},${mo})" style="padding:12px 16px;cursor:pointer${isLast ? '' : ';border-bottom:1px solid rgba(0,0,0,0.05)'}">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-            <span style="font-size:14px;font-weight:600;color:#111827">${MONTHS[mo]}</span>
-            <div style="display:flex;align-items:center;gap:6px">
-              ${isPeak ? `<span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 6px;border-radius:6px">Peak</span>` : ''}
-              <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
-            </div>
-          </div>
-          <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+        html += `<div onclick="event.stopPropagation();goToMonth(${yr},${mo})" style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between${isLast ? '' : ';border-bottom:1px solid rgba(0,0,0,0.05)'}">
+          <span style="font-size:14px;font-weight:600;color:#111827">${MONTHS[mo]}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${isPeak ? `<span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 6px;border-radius:6px">Peak</span>` : ''}
+            <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
           </div>
         </div>`;
       }
@@ -2710,6 +2709,14 @@ function buildMonthly() {
 function toggleYearCollapse(yr) {
   if (collapsedYears.has(yr)) collapsedYears.delete(yr);
   else collapsedYears.add(yr);
+  renderContent();
+}
+function collapseAllYears() {
+  [...new Set(data.transactions.map(t => t.date.slice(0, 4)))].forEach(yr => collapsedYears.add(yr));
+  renderContent();
+}
+function expandAllYears() {
+  collapsedYears.clear();
   renderContent();
 }
 
