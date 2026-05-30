@@ -1457,7 +1457,7 @@
 <div class="sheet" id="recurring-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
-    <span class="sheet-title">Recurring Expenses</span>
+    <span class="sheet-title">Edit Rule</span>
     <button class="sheet-x" onclick="closeRecurringSheet()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
   </div>
   <div class="sheet-body" id="recurring-body"></div>
@@ -1567,6 +1567,11 @@ let addViewPrev = 'transactions'; // view to return to when closing add page
 let fDescription  = '';
 let fPhoto        = null; // base64 data URL
 let fIsRecurring  = false; // true when editing a transaction that has/had a recurring rule
+let ruleEditId    = null;
+let ruleEditNote  = '';
+let ruleEditCents = 0;
+let ruleEditFreq  = '';
+let ruleEditCat   = '';
 
 // Add-category form state
 let catAddMode  = false;
@@ -2209,7 +2214,13 @@ function getTxWeekDays(offset = 0) {
 }
 
 function swipeDeleteTx(id) {
+  const tx = data.transactions.find(t => t.id === id);
   data.transactions = data.transactions.filter(t => t.id !== id);
+  if (tx?.recurringId) {
+    const today = todayStr();
+    data.transactions = data.transactions.filter(t => !(t.recurringId === tx.recurringId && t.date > today));
+    data.recurring = data.recurring.filter(r => r.id !== tx.recurringId);
+  }
   save();
   renderContent();
   toast('Deleted');
@@ -2450,13 +2461,13 @@ function buildRecurring() {
   for (const r of data.recurring) {
     const cat  = getCat(r.category);
     const freq = RMAP[r.frequency]?.label || r.frequency;
-    html += `<div class="rule-row">
+    html += `<div class="rule-row" style="cursor:pointer" onclick="openRuleEdit('${r.id}')">
       <span class="rule-ico">${cat.emoji}</span>
       <div class="rule-info">
         <div class="rule-name">${esc(r.note || cat.label)}</div>
         <div class="rule-sub">${freq} · ${rm(r.amount)} · since ${fmtFormDate(r.startDate)}</div>
       </div>
-      <button class="rule-del" onclick="deleteRuleFromView('${r.id}')">✕</button>
+      <button class="rule-del" onclick="event.stopPropagation();deleteRuleFromView('${r.id}')">✕</button>
     </div>`;
   }
   html += `</div>`;
@@ -2464,13 +2475,13 @@ function buildRecurring() {
 }
 
 function deleteRuleFromView(id) {
-  if (!confirm('Delete all future recurring transactions?')) return;
+  if (!confirm('Delete this and all future recurring transactions?')) return;
   const today = todayStr();
-  data.transactions = data.transactions.filter(t => !(t.recurringId === id && t.date > today));
+  data.transactions = data.transactions.filter(t => !(t.recurringId === id && t.date >= today));
   data.recurring = data.recurring.filter(r => r.id !== id);
   save();
   renderContent();
-  toast('Future transactions removed');
+  toast('Recurring transactions removed');
 }
 
 function selectCalDay(ds) {
@@ -2560,7 +2571,7 @@ function buildAddPage() {
       <input type="date" id="f-date" value="${fDate}"
         style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"
         onchange="fDate=this.value;renderContent()" onfocus="closeCalc()">
-      ${fMode === 'add' ? `
+      ${(fMode === 'add' || !fIsRecurring) ? `
       <button class="repeat-trigger ${isRepeatOn ? 'on' : ''}" onclick="openRepeatSheet()" title="${isRepeatOn ? esc(repeatLbl) : 'Repeat'}">
         <span class="repeat-trigger-ico">🔁</span>
       </button>` : ''}
@@ -2708,6 +2719,13 @@ function saveTx() {
       if (tx.recurringId) {
         const rule = data.recurring.find(r => r.id === tx.recurringId);
         if (rule) { rule.note = fNote.trim(); rule.amount = amount; rule.category = fCat; }
+      } else if (fRepeat !== 'none') {
+        const rule = {
+          id: uid(), amount, category: fCat, note: fNote.trim(),
+          frequency: fRepeat, startDate: tx.date, lastGenerated: tx.date,
+        };
+        data.recurring.push(rule);
+        tx.recurringId = rule.id;
       }
       save();
       toast('Updated ✓');
@@ -2725,10 +2743,21 @@ function saveTx() {
 
 function deleteTx() {
   if (fMode === 'add') { closeAddView(); return; }
-  if (!confirm('Delete this expense?')) return;
+  const msg = fIsRecurring ? 'Delete this expense and stop the recurring rule?' : 'Delete this expense?';
+  if (!confirm(msg)) return;
+  const tx = data.transactions.find(t => t.id === fEditId);
+  const recurringId = tx?.recurringId;
   data.transactions = data.transactions.filter(t => t.id !== fEditId);
-  save();
-  toast('Deleted');
+  if (recurringId) {
+    const today = todayStr();
+    data.transactions = data.transactions.filter(t => !(t.recurringId === recurringId && t.date > today));
+    data.recurring = data.recurring.filter(r => r.id !== recurringId);
+    save();
+    toast('Expense and recurring rule deleted');
+  } else {
+    save();
+    toast('Deleted');
+  }
   if (view === 'add') {
     view = addViewPrev;
     render();
@@ -2770,44 +2799,109 @@ function closeRepeatSheet() {
 
 // ── Recurring rules sheet ─────────────────────────────────────────────────────
 
-function openRecurringSheet() {
+function openRuleEdit(id) {
+  const r = data.recurring.find(x => x.id === id);
+  if (!r) return;
+  ruleEditId    = id;
+  ruleEditNote  = r.note || '';
+  ruleEditCents = Math.round(r.amount * 100);
+  ruleEditFreq  = r.frequency;
+  ruleEditCat   = r.category;
   subSheet = 'recurring';
-  renderRecurringSheet();
+  renderRuleEditSheet();
+  document.getElementById('overlay').classList.add('show');
   showSheet('recurring-sheet');
 }
 
-function renderRecurringSheet() {
-  let html = '';
-  if (!data.recurring.length) {
-    html = `<div style="padding:40px 20px;text-align:center;color:var(--text-3);font-size:14px;">No recurring expenses set up yet.</div>`;
-  } else {
-    for (const r of data.recurring) {
-      const cat  = getCat(r.category);
-      const freq = RMAP[r.frequency]?.label || r.frequency;
-      html += `<div class="rule-row">
-        <span class="rule-ico">${cat.emoji}</span>
-        <div class="rule-info">
-          <div class="rule-name">${esc(r.note || cat.label)}</div>
-          <div class="rule-sub">${rm(r.amount)} · ${freq} · since ${r.startDate}</div>
-        </div>
-        <button class="rule-del" onclick="deleteRule('${r.id}')">✕</button>
-      </div>`;
-    }
+function renderRuleEditSheet() {
+  const r = data.recurring.find(x => x.id === ruleEditId);
+  if (!r) return;
+  const cat = getCat(r.category);
+  let freqHtml = '';
+  for (const rep of REPEATS.filter(x => x.key !== 'none')) {
+    const sel = rep.key === ruleEditFreq;
+    freqHtml += `<div class="rep-option ${sel ? 'sel' : ''}" onclick="ruleEditFreq='${rep.key}';renderRuleEditSheet()">
+      <span>${rep.label}</span>
+      ${sel ? '<span class="rep-check">✓</span>' : ''}
+    </div>`;
   }
-  document.getElementById('recurring-body').innerHTML = html;
+  document.getElementById('recurring-body').innerHTML = `
+    <div style="padding:0 16px 12px">
+      <div style="border-radius:12px;overflow:hidden;margin-bottom:12px">
+        <div class="form-row" style="background:rgba(255,255,255,0.9);border-bottom:1px solid #f3f4f6">
+          <span class="form-lbl">Since</span>
+          <span style="font-size:14px;color:#6b7280">${fmtFormDate(r.startDate)}</span>
+        </div>
+        <div class="form-row" style="background:rgba(255,255,255,0.9);border-bottom:1px solid #f3f4f6">
+          <span class="form-lbl">Category</span>
+          <span style="font-size:14px;color:#6b7280">${cat.emoji} ${cat.label}</span>
+        </div>
+        <div class="form-row" style="background:rgba(255,255,255,0.9);border-bottom:1px solid #f3f4f6">
+          <span class="form-lbl">Note</span>
+          <input class="form-input" type="text" value="${esc(ruleEditNote)}"
+            oninput="ruleEditNote=this.value" placeholder="What is this for?" style="border:none;background:transparent;outline:none;flex:1">
+        </div>
+        <div class="form-row" style="background:rgba(255,255,255,0.9)">
+          <span class="form-lbl">Amount</span>
+          <span id="rule-amt-display" style="font-size:16px;font-weight:600;color:#111827">RM ${centsToStr(ruleEditCents)}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+        ${['1','2','3','4','5','6','7','8','9','00','0','⌫'].map(k => `
+          <button onclick="${k==='⌫' ? 'ruleCalcBack()' : `ruleCalcInput('${k}')`}"
+            style="height:52px;border:none;border-radius:12px;font-size:20px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.9);color:#111827;touch-action:manipulation">
+            ${k}
+          </button>`).join('')}
+      </div>
+      <div style="margin-bottom:4px;font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.05em">FREQUENCY</div>
+    </div>
+    ${freqHtml}
+    <div style="padding:16px">
+      <button onclick="saveRuleEdit()" style="width:100%;height:44px;background:#7c3aed;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Save Changes</button>
+    </div>
+  `;
 }
 
-function deleteRule(id) {
-  if (!confirm('Stop this recurring rule? Existing entries will remain.')) return;
-  data.recurring = data.recurring.filter(r => r.id !== id);
+function saveRuleEdit() {
+  const amt = ruleEditCents / 100;
+  if (!amt || amt <= 0) { toast('Enter a valid amount'); return; }
+  const r = data.recurring.find(x => x.id === ruleEditId);
+  if (!r) return;
+  const freqChanged = r.frequency !== ruleEditFreq;
+  r.note      = ruleEditNote.trim();
+  r.amount    = amt;
+  r.frequency = ruleEditFreq;
+  const today = todayStr();
+  data.transactions
+    .filter(t => t.recurringId === ruleEditId && t.date >= today)
+    .forEach(t => { t.note = r.note; t.amount = r.amount; });
+  if (freqChanged) {
+    data.transactions = data.transactions.filter(t => !(t.recurringId === ruleEditId && t.date > today));
+    r.lastGenerated = today;
+    generateRecurring();
+  }
   save();
-  renderRecurringSheet();
-  render();
-  toast('Rule removed');
+  closeRecurringSheet();
+  renderContent();
+  toast('Rule updated');
+}
+
+function ruleCalcInput(ch) {
+  if (ch === '00') ruleEditCents = Math.min(ruleEditCents * 100, 9999999);
+  else ruleEditCents = Math.min(ruleEditCents * 10 + parseInt(ch), 9999999);
+  const el = document.getElementById('rule-amt-display');
+  if (el) el.textContent = 'RM ' + centsToStr(ruleEditCents);
+}
+
+function ruleCalcBack() {
+  ruleEditCents = Math.floor(ruleEditCents / 10);
+  const el = document.getElementById('rule-amt-display');
+  if (el) el.textContent = 'RM ' + centsToStr(ruleEditCents);
 }
 
 function closeRecurringSheet() {
   hideSheet('recurring-sheet');
+  document.getElementById('overlay').classList.remove('show');
   subSheet = null;
 }
 
