@@ -1608,6 +1608,7 @@ let ruleEditCat   = '';
 let catAddMode  = false;
 let newCatLabel = '';
 let monthlyFilterCat = ''; // '' = all categories; category key = filtered view
+let collapsedYears   = new Set(); // year strings currently collapsed in Monthly tab
 
 const CAT_COLORS = [
   '#10b981','#f59e0b','#3b82f6','#ec4899',
@@ -2676,35 +2677,47 @@ function buildMonthly() {
   for (const yr of years) {
     const yrKeys = byYear[yr];
     const yrTotal = yrKeys.reduce((s, k) => s + monthMap[k], 0);
-    html += `<div style="padding:12px 4px 4px;display:flex;justify-content:space-between;align-items:baseline">
-      <span style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:0.05em">${yr}</span>
-      <span style="font-size:12px;font-weight:700;color:#7c3aed">${rm(yrTotal)}</span>
-    </div>
-      <div style="background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(99,102,241,0.09);margin-bottom:12px">`;
-    for (let i = 0; i < yrKeys.length; i++) {
-      const k = yrKeys[i];
-      const mo = parseInt(k.slice(5, 7), 10) - 1;
-      const total = monthMap[k];
-      const pct = maxVal > 0 ? (total / maxVal) * 100 : 0;
-      const isPeak = k === maxKey;
-      const isLast = i === yrKeys.length - 1;
-      html += `<div onclick="goToMonth(${yr},${mo})" style="padding:12px 16px;cursor:pointer${isLast ? '' : ';border-bottom:1px solid rgba(0,0,0,0.05)'}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-          <span style="font-size:14px;font-weight:600;color:#111827">${MONTHS[mo]}</span>
-          <div style="display:flex;align-items:center;gap:6px">
-            ${isPeak ? `<span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 6px;border-radius:6px">Peak</span>` : ''}
-            <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
+    const isCollapsed = collapsedYears.has(yr);
+    html += `<div onclick="toggleYearCollapse('${yr}')" style="padding:12px 4px 6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;-webkit-tap-highlight-color:transparent">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:9px;color:#6b7280;transition:transform 0.2s;display:inline-block;transform:rotate(${isCollapsed ? '-90' : '0'}deg)">▼</span>
+        <span style="font-size:12px;font-weight:700;color:#4b5563;letter-spacing:0.05em">${yr}</span>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:#7c3aed">${rm(yrTotal)}</span>
+    </div>`;
+    if (!isCollapsed) {
+      html += `<div style="background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(99,102,241,0.09);margin-bottom:12px">`;
+      for (let i = 0; i < yrKeys.length; i++) {
+        const k = yrKeys[i];
+        const mo = parseInt(k.slice(5, 7), 10) - 1;
+        const total = monthMap[k];
+        const pct = maxVal > 0 ? (total / maxVal) * 100 : 0;
+        const isPeak = k === maxKey;
+        const isLast = i === yrKeys.length - 1;
+        html += `<div onclick="event.stopPropagation();goToMonth(${yr},${mo})" style="padding:12px 16px;cursor:pointer${isLast ? '' : ';border-bottom:1px solid rgba(0,0,0,0.05)'}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+            <span style="font-size:14px;font-weight:600;color:#111827">${MONTHS[mo]}</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              ${isPeak ? `<span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 6px;border-radius:6px">Peak</span>` : ''}
+              <span style="font-size:14px;font-weight:700;color:#7c3aed">${rm(total)}</span>
+            </div>
           </div>
-        </div>
-        <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
-        </div>
-      </div>`;
+          <div style="height:4px;background:#f3f4f6;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+          </div>
+        </div>`;
+      }
+      html += `</div>`;
     }
-    html += `</div>`;
   }
   html += `</div>`;
   return html;
+}
+
+function toggleYearCollapse(yr) {
+  if (collapsedYears.has(yr)) collapsedYears.delete(yr);
+  else collapsedYears.add(yr);
+  renderContent();
 }
 
 function openMonthlyCatPicker() {
