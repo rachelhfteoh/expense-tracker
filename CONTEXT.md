@@ -7,11 +7,13 @@ All changes committed and pushed to GitHub Pages. App live and in active use wit
 Nothing in progress.
 
 ## Up Next
-1. Search / filter transactions
-2. Export/Import backup — already built; verify works correctly on iPhone
+1. Verify category filter on Monthly tab works correctly on iPhone (GitHub Pages)
+2. Search / filter transactions
 
 ## Backlog
 - Budget targets per category
+- Option A: Category trend history in cat-detail view (monthly breakdown per category, as alternative to Monthly tab filter)
+- Export/Import backup — already built; verify works correctly on iPhone
 
 ## Completed — Archive
 ✅ Requirements gathered — MYR only, expenses only, Sun-Sat calendar
@@ -38,3 +40,4 @@ Nothing in progress.
 ✅ Recurring simplified — frequency reduced to Monthly only; removed quarterly/bi-annual/annual
 ✅ Recurring sub-line — shows category label instead of "since" date
 ✅ Categories refined — 16 custom categories: Groceries, Eating Out, Transport, Utilities, Health, Beauty🌸, Fitness, Seafood, Snacks, Veggies, Fruits, Pastries, Household, Subscriptions, Insurance, Crystal
+✅ Category filter on Monthly tab — filter pill, category picker sheet, filtered chart + month list, Peak Month badge

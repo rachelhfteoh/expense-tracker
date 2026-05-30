@@ -103,7 +103,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fDescription` — long-form description field state
 - `fPhoto` — base64 photo data URL (or null)
 - `fIsRecurring` — true when editing a transaction that has/had a `recurringId`; used to show 🔁 in Edit Expense header AND to hide/show the 🔁 repeat button in the date row
-- `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | null`)
+- `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | 'monthly-filter' | null`)
 - `ruleEditId` — ID of the recurring rule being edited in the Edit Rule sheet (null when closed)
 - `ruleEditNote` — note field state for Edit Rule sheet
 - `ruleEditCents` — amount in integer cents for Edit Rule sheet numpad (same cash register style as main calc)
@@ -115,6 +115,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `activePanel` — which panel is visible in the bottom panel area (`'calc' | 'cat' | null`)
 - `catAddMode` — whether the "New Category" name-entry form is open in `#cat-sheet`
 - `newCatLabel` — new category name being typed
+- `monthlyFilterCat` — category key currently filtering the Monthly tab (`''` = all categories)
 
 ### Key helpers
 - `todayStr()` — current date as "YYYY-MM-DD"
@@ -163,6 +164,12 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `closeCatNew()` — closes sheet, calls `openCatPanel()` to return to inline cat grid
 - `renderCatSheet()` — now ONLY renders the name-entry form inside `#cat-sheet` (no longer renders the grid)
 - `saveCustomCat()` — saves new cat (emoji='⭐', color auto from palette), closes sheet, calls `renderCatInner()`
+
+### Monthly tab filter helpers (Session 15)
+- `openMonthlyCatPicker()` — builds category list (only cats with transactions) into `#monthly-filter-body`, sets `subSheet='monthly-filter'`, shows sheet + overlay
+- `pickMonthlyCat(key)` — sets `monthlyFilterCat`, closes picker, calls `renderContent()`
+- `closeMonthlyCatPicker()` — hides sheet + overlay, resets `subSheet`
+- `buildMonthly()` filters `data.transactions` by `monthlyFilterCat` before computing `monthMap`; empty string = all transactions (default behaviour unchanged)
 
 ### Month navigation helpers (Session 8)
 - `weekOffsetForDate(ds)` — returns the integer week offset from the current week to the week containing `ds` (negative = past)
@@ -236,7 +243,7 @@ Nothing · Every Month
 
 **Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count + monthly commitment total). Glass card list of all `data.recurring` rules: emoji, note, sub-line shows `category · frequency · amount`. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
 
-**Monthly (`view = 'monthly'`)** — 5th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Summary bar (all-time total + monthly average). SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots, month labels). Month list grouped by year (newest first) — each row: month name, amount in purple, thin relative bar vs max month. Tap row → `goToMonth(y, m)` navigates to that month in Transactions tab. Settings gear opens `#data-action` sheet with Export / Import options.
+**Monthly (`view = 'monthly'`)** — 5th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Filter pill at top (tap → `#monthly-filter-sheet` category picker). When no filter: summary bar shows all-time total + monthly avg; chart and list show all transactions. When filtered: summary bar shows all-time total + Peak Month (name + year); chart and list show that category only; peak month row gets a "Peak" purple badge. SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots — peak dot larger). Month list grouped by year (newest first). Tap row → `goToMonth(y, m)`. Settings gear opens `#data-action` sheet with Export / Import options.
 
 ### Transaction row layout
 ```
@@ -266,9 +273,10 @@ Note text                             RM X.XX
 - `#recurring-sheet` — Edit Rule sheet; opens when tapping a rule row in Recurring tab (z-index 400, shows overlay). Contains: Since (read-only), Category (read-only), Note input, Amount display + numpad, Frequency picker, Save Changes button.
 - `#cat-sheet` — ONLY used for "New Category" name-entry form (z-index 400, shows overlay); category grid is now inline in `#cat-inner`
 - `#bottom-panel` — `position: sticky; bottom: calc(64px + env(safe-area-inset-bottom))` — sticks above the action bar when either panel is open; contains `#calc-inner` and `#cat-inner`; one shown at a time
+- `#monthly-filter-sheet` — category picker for Monthly tab filter (z-index 300, standard sheet); opens via `openMonthlyCatPicker()`; lists only categories with actual transactions; "All categories" at top; sets `subSheet = 'monthly-filter'`
 - `#photo-action` — Camera/Gallery action sheet (z-index 550, custom iOS-style)
 - `.add-action-bar` — fixed bottom bar (z-index 50); Save + Delete buttons
-- Overlay click: handles repeat/recurring/cat sheets only; inline panels do NOT use the overlay
+- Overlay click: handles repeat/recurring/cat/monthly-filter sheets; inline panels do NOT use the overlay
 
 ### Z-index stack
 | Layer | z-index |

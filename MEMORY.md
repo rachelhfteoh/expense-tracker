@@ -322,6 +322,15 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Recurring sub-line format** — changed from `freq · amount · since date` to `category · freq · amount`. "Since" date removed — it's visible in the Edit Rule sheet.
 - **Monthly Commitment in Recurring summary bar** — straight sum of all `data.recurring` amounts. No normalisation needed since all rules are monthly frequency only.
 
+### Monthly tab category filter (Session 15)
+- **Filter pill** sits at the top of Monthly content (before summary bar), built inside `buildMonthly()` as inline HTML.
+- **`buildMonthly()` filters `data.transactions` by `monthlyFilterCat`** before building `monthMap` — empty string = all transactions, any category key = filtered view. Single source of truth, no separate render path.
+- **Summary bar changes when filtered:** "Monthly Avg" replaced by "Peak Month" (MONTHS[mo].slice(0,3) + year). This gives Rachel the direct answer to "which month was highest?"
+- **Peak month badge in month list:** `isPeak = k === maxKey` where `maxKey = keys.find(k => monthMap[k] === maxVal)`. Only the single highest row gets the badge — if two months tie, the first (newest, since `keys` is sorted newest-first) gets it.
+- **`#monthly-filter-sheet` uses standard `.sheet` + `.rep-option` CSS** — no new CSS needed, reuses the repeat-picker sheet styles. Registered in `closeAllSheets()` list for safety.
+- **Picker only shows categories with actual transactions** — `getAllCats().filter(c => c.key !== 'other' && usedKeys.has(c.key))` — avoids showing empty categories that would produce a blank chart.
+- **`monthlyFilterCat` persists within the session** — intentional, so switching to check a transaction and coming back keeps the filter. Not reset on `switchView()`.
+
 ### Always commit and push before asking Rachel to test (Session 11)
 - Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/), not local files.
 - Every fix must be committed and pushed BEFORE asking her to test — otherwise she sees the old cached version.
@@ -358,3 +367,5 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **`#recurring-sheet` is now the Edit Rule sheet** — it opens from the Recurring tab (not from Transactions header). `openRecurringSheet()` and `renderRecurringSheet()` are replaced by `openRuleEdit()` and `renderRuleEditSheet()`. Do not restore the old functions.
 - **PWA standalone storage ≠ Safari browser storage** — iOS gives PWA home screen apps their own isolated localStorage. Opening the GitHub Pages URL in Safari always shows empty data. Remind Rachel to always use the home screen icon.
 - **Deleting the home screen icon wipes PWA data on iOS** — always export backup first. Do not ask Rachel to delete and re-add the icon without exporting first.
+- **`monthlyFilterCat` must be checked in `buildMonthly()`** — if you ever split the Monthly view into sub-functions, make sure each one respects this state. The filter is applied once at the top of `buildMonthly()` via `data.transactions.filter(...)` — don't re-filter inside sub-functions or you'll double-filter.
+- **`#monthly-filter-sheet` must be in `closeAllSheets()`** — it was added to the array. If you add more sheets in future, follow the same pattern.
