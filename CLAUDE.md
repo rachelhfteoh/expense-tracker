@@ -102,8 +102,13 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `fMode, fEditId, fDate, fAmount, fCat, fNote, fRepeat` — add/edit form state
 - `fDescription` — long-form description field state
 - `fPhoto` — base64 photo data URL (or null)
-- `fIsRecurring` — true when editing a transaction that has/had a `recurringId`; used to show 🔁 in Edit Expense header
+- `fIsRecurring` — true when editing a transaction that has/had a `recurringId`; used to show 🔁 in Edit Expense header AND to hide/show the 🔁 repeat button in the date row
 - `subSheet` — which secondary sheet is open (`'repeat' | 'recurring' | 'cat' | null`)
+- `ruleEditId` — ID of the recurring rule being edited in the Edit Rule sheet (null when closed)
+- `ruleEditNote` — note field state for Edit Rule sheet
+- `ruleEditCents` — amount in integer cents for Edit Rule sheet numpad (same cash register style as main calc)
+- `ruleEditFreq` — frequency field state for Edit Rule sheet
+- `ruleEditCat` — category field state for Edit Rule sheet (currently unused — category is read-only in sheet)
 - `calcCents` — current right operand in integer cents (e.g. `1234` = RM 12.34)
 - `calcLeftCents` — left operand in cents when an operator is pending (null otherwise)
 - `calcOp` — pending operator: `'+'|'-'|'*'|'/'|null`
@@ -205,6 +210,11 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 - 🔁 badge in transaction rows: shown only while the rule still exists (`data.recurring.some(r => r.id === t.recurringId)`)
 - 🔁 icon in Edit Expense header: shown whenever `fIsRecurring` is true — permanent marker even after rule deleted
 - `recurringId` is NOT nulled out when a rule is deleted — kept for the Edit header indicator
+- 🔁 repeat button in date row: shown when `fMode === 'add' || !fIsRecurring` — hidden for existing recurring transactions
+- Adding a repeat frequency while editing a non-recurring transaction creates a NEW rule and links it via `recurringId`
+- **Deleting a recurring transaction** (swipe or Delete button): always removes the specific transaction first, then removes the rule + all strictly-future instances (`date > today`). No second prompt.
+- **Edit Rule sheet** (`#recurring-sheet`): tap a rule row in Recurring tab → opens sheet. Fields: Since (read-only), Category (read-only), Note (editable), Amount (cash register numpad, same as main calc), Frequency picker. Save syncs note/amount to today+future transactions; frequency change also deletes future instances and regenerates.
+- `deleteRuleFromView(id)` — deletes rule + all instances `date >= today` (today inclusive). Confirm prompt: "Delete this and all future recurring transactions?"
 
 ---
 
@@ -220,7 +230,7 @@ Nothing · Every Month · Every 3 Months · Every 6 Months · Annually
 
 **Category detail (`view = 'cat-detail'`)** — Full-page. Header: `← Stats` + `[emoji] Category` + month subtitle. Nav/FAB hidden. Summary bar (total, count). Transactions for that category in `stYear/stMon`, grouped by date, compact rows (note + amount only). Tap row → edit (returns to cat-detail after save).
 
-**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count). Glass card list of all `data.recurring` rules: emoji, note/category name, frequency · amount · since [date]. ✕ button → `confirm()` → deletes rule + all transactions with that `recurringId` dated after today; today and past entries untouched. `buildRecurring()` / `deleteRuleFromView(id)`.
+**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count). Glass card list of all `data.recurring` rules: emoji, note/category name, frequency · amount · since [date]. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
 
 ### Transaction row layout
 ```
@@ -246,7 +256,7 @@ Note text                             RM X.XX
 
 - `#add-sheet` — present in HTML but unused (kept to avoid null refs in closeAllSheets)
 - `#repeat-sheet` — repeat picker (slides over add view, z-index 400, shows overlay)
-- `#recurring-sheet` — manage recurring rules (sheet from Transactions header, z-index 400)
+- `#recurring-sheet` — Edit Rule sheet; opens when tapping a rule row in Recurring tab (z-index 400, shows overlay). Contains: Since (read-only), Category (read-only), Note input, Amount display + numpad, Frequency picker, Save Changes button.
 - `#cat-sheet` — ONLY used for "New Category" name-entry form (z-index 400, shows overlay); category grid is now inline in `#cat-inner`
 - `#bottom-panel` — `position: sticky; bottom: calc(64px + env(safe-area-inset-bottom))` — sticks above the action bar when either panel is open; contains `#calc-inner` and `#cat-inner`; one shown at a time
 - `#photo-action` — Camera/Gallery action sheet (z-index 550, custom iOS-style)

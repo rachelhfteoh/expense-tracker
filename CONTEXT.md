@@ -1,13 +1,13 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-App deployed to GitHub Pages. Recurring tab added, tested locally. Changes not yet pushed to GitHub Pages.
+All session changes committed locally. Not yet pushed to GitHub Pages — needs push before iPhone test.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Push session changes and do full end-to-end iPhone test (recurring tab, delete rule, 🔁 badge behaviour)
+1. Push to GitHub Pages and do full end-to-end iPhone test
 2. Search / filter transactions
 
 ## Backlog
@@ -61,4 +61,8 @@ Nothing in progress.
 ✅ Recurring tab — 4th nav tab; shows all active rules with emoji, note, frequency, amount, start date; ✕ to delete
 ✅ Recurring rule sync — editing a recurring transaction also updates rule's note/amount/category
 ✅ Smart 🔁 badge — shows in transaction rows only while rule is active; always shown in Edit Expense header
-✅ Delete rule UX — ✕ prompts "Delete all future recurring transactions?"; keeps today + past; clears future only
+✅ Delete rule UX (Recurring tab ✕) — deletes rule + today and all future instances; keeps past entries
+✅ Edit rule (Recurring tab tap) — sheet with Since (read-only), Category (read-only), Note, Amount (cash register numpad), Frequency picker
+✅ 🔁 button in Edit Expense — shown for non-recurring transactions only; hidden for recurring (manage via Recurring tab)
+✅ Add recurring rule from edit — saving a non-recurring transaction with a repeat set creates a new rule
+✅ Delete recurring transaction — swipe-delete or Delete button removes transaction + rule + future instances automatically

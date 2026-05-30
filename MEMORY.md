@@ -302,6 +302,16 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Delete rule UX:** `deleteRuleFromView()` uses `confirm()` with message "Delete all future recurring transactions?". Deletes future transactions (`date > today`) + removes rule. Today and past entries always preserved.
 - **"Future" = strictly after today** — use `date > today` (not `>=`). Today's transaction is "current" and kept.
 
+### Recurring tab improvements (Session 13)
+- **Edit Rule sheet:** `#recurring-sheet` repurposed as the rule edit sheet (was dead code). `openRuleEdit(id)` populates state and opens it. `renderRuleEditSheet()` builds the form. `saveRuleEdit()` validates, updates rule, syncs today+future transactions, regenerates if frequency changed.
+- **Rule edit amount uses cash register numpad** — same `ruleEditCents` / `ruleCalcInput()` / `ruleCalcBack()` pattern as main calc. DO NOT use a plain `<input>` for rule amount — user expects decimal-first format.
+- **Delete recurring transaction** — `swipeDeleteTx()` and `deleteTx()` now: (1) always remove the specific transaction first by ID, then (2) if `tx.recurringId` exists, remove rule + instances `date > today`. The two steps are independent — step 1 doesn't depend on date filters.
+- **Bug fix: filter logic for deleting recurring transactions** — original attempt used `date >= today` filter to remove the transaction, which failed for past-dated entries. Fix: always remove the specific transaction by ID first (`filter t.id !== fEditId`), then separately clean up future instances (`date > today`).
+- **🔁 button visibility in Edit Expense** — shown when `fMode === 'add' || !fIsRecurring`. Hidden for existing recurring transactions (their rule is managed from the Recurring tab). Shown for non-recurring transactions so you can retroactively add a repeat.
+- **Adding repeat while editing a non-recurring transaction** — `saveTx()` edit path now checks `fRepeat !== 'none' && !tx.recurringId` → creates a new rule and sets `tx.recurringId`. Previously only synced existing rules.
+- **deleteRuleFromView() updated** — now deletes instances `>= today` (today inclusive, not just future). Confirm message updated to "Delete this and all future recurring transactions?".
+- **Rule rows in Recurring tab are tappable** — `onclick="openRuleEdit(...)"` on `.rule-row`. Delete button uses `event.stopPropagation()` to prevent triggering the row tap.
+
 ### Always commit and push before asking Rachel to test (Session 11)
 - Rachel tests exclusively on GitHub Pages (https://rachelhfteoh.github.io/expense-tracker/), not local files.
 - Every fix must be committed and pushed BEFORE asking her to test — otherwise she sees the old cached version.
@@ -333,3 +343,6 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **Swipe rows: `.tx-row-wrap:last-child .tx-row`** — use this selector for removing the last border, NOT `.tx-row:last-child` which matches every row in the new wrapper structure.
 - **🔁 badge check must use `data.recurring.some()`** — never simplify to `t.recurringId ? ...`. The rule may have been deleted while the transaction still has a recurringId.
 - **`fIsRecurring` must be reset in openAdd() and openAddForDay()** — if not reset, stale `true` from a prior edit bleeds into a new-expense form and shows 🔁 in the header incorrectly.
+- **Delete recurring transaction: remove by ID first, then clean up** — never rely solely on a date filter to remove the target transaction. Always `filter(t => t.id !== id)` first, then separately `filter` future instances. If you only use the date filter, past-dated recurring transactions won't be removed.
+- **Edit Rule sheet amount is `ruleEditCents` (integer cents)** — `saveRuleEdit()` reads `ruleEditCents / 100`. Never revert to a string `ruleEditAmt` — the numpad doesn't write to a string anymore.
+- **`#recurring-sheet` is now the Edit Rule sheet** — it opens from the Recurring tab (not from Transactions header). `openRecurringSheet()` and `renderRecurringSheet()` are replaced by `openRuleEdit()` and `renderRuleEditSheet()`. Do not restore the old functions.
