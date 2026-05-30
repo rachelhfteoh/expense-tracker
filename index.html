@@ -2675,7 +2675,11 @@ function buildMonthly() {
   html += `<div style="padding:0 12px 80px">`;
   for (const yr of years) {
     const yrKeys = byYear[yr];
-    html += `<div style="padding:12px 4px 4px;font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:0.05em">${yr}</div>
+    const yrTotal = yrKeys.reduce((s, k) => s + monthMap[k], 0);
+    html += `<div style="padding:12px 4px 4px;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:0.05em">${yr}</span>
+      <span style="font-size:12px;font-weight:700;color:#7c3aed">${rm(yrTotal)}</span>
+    </div>
       <div style="background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(99,102,241,0.09);margin-bottom:12px">`;
     for (let i = 0; i < yrKeys.length; i++) {
       const k = yrKeys[i];
