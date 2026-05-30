@@ -2565,22 +2565,18 @@ function buildMonthly() {
     const peakYr = maxKey.slice(0, 4);
     summaryHtml = `<div class="summary-bar">
       <div class="sum-item">
-        <div class="sum-label">All Time</div>
-        <div class="sum-value">${rm(allTimeTotal)}</div>
-      </div>
-      <div class="sum-item">
         <div class="sum-label">Peak Month</div>
         <div class="sum-value">${MONTHS[peakMo].slice(0,3)} ${peakYr}</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Peak Amount</div>
+        <div class="sum-value">${rm(maxVal)}</div>
       </div>
     </div>`;
   } else {
     const avg = allTimeTotal / keys.length;
     summaryHtml = `<div class="summary-bar">
-      <div class="sum-item">
-        <div class="sum-label">All Time</div>
-        <div class="sum-value">${rm(allTimeTotal)}</div>
-      </div>
-      <div class="sum-item">
+      <div class="sum-item" style="flex:1">
         <div class="sum-label">Monthly Avg</div>
         <div class="sum-value">${rm(avg)}</div>
       </div>
