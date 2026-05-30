@@ -904,7 +904,7 @@
     .rule-ico { font-size: 26px; flex-shrink: 0; }
     .rule-info { flex: 1; min-width: 0; }
     .rule-name { font-size: 14px; font-weight: 600; color: var(--text); }
-    .rule-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .rule-sub { font-size: 12px; color: #374151; margin-top: 2px; }
     .rule-del {
       background: none;
       border: none;
@@ -3624,21 +3624,22 @@ function buildSearchResults() {
 }
 
 function searchResultRowHtml(t) {
-  const cat     = getCat(t.category);
-  const dateStr = fmtFormDate(t.date);
+  const cat      = getCat(t.category);
+  const { y, m, d } = parseDate(t.date);
+  const dayMon   = `${d} ${MONTHS[m].slice(0,3)}`;
   const recurBadge = data.recurring.some(r => r.id === t.recurringId)
     ? `<span style="font-size:9px;background:#ede9fe;color:#7c3aed;border-radius:4px;padding:1px 4px;font-weight:700;margin-left:4px">🔁</span>`
     : '';
   return `
     <div class="tx-row-wrap">
       <div class="tx-row" onclick="openEdit('${t.id}')">
-        <div class="tx-left">
-          <div class="tx-icon" style="background:${cat.color}20;color:${cat.color}">${cat.emoji}</div>
-          <span class="tx-cat">${esc(cat.label)}</span>
+        <div style="flex-shrink:0;width:54px">
+          <div style="font-size:12px;font-weight:700;color:#111827">${dayMon}</div>
+          <div style="font-size:11px;font-weight:600;color:#374151">${y}</div>
         </div>
         <div class="tx-info">
           <div class="tx-note">${esc(t.note) || '—'}</div>
-          <div style="font-size:11px;color:#6b7280;margin-top:2px">${dateStr}${recurBadge}</div>
+          <div style="font-size:11px;color:#374151;font-weight:500;margin-top:3px">${cat.emoji} ${esc(cat.label)}${recurBadge}</div>
         </div>
         <span class="tx-amount">${rm(t.amount)}</span>
       </div>
