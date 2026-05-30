@@ -1402,6 +1402,117 @@
       padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
     }
     #data-action.show { display: flex; }
+
+    /* ── Search ── */
+    .search-bar-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: #f3f4f6;
+      border-radius: 14px;
+      padding: 0 14px;
+      margin-bottom: 12px;
+    }
+    .search-bar-wrap svg { flex-shrink: 0; color: #9ca3af; }
+    .search-bar-input {
+      flex: 1;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 500;
+      color: #111827;
+      padding: 13px 10px;
+      outline: none;
+    }
+    .search-bar-input::placeholder { color: #9ca3af; font-weight: 400; }
+    .search-clear-btn {
+      background: #d1d5db;
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .search-clear-btn:active { background: #9ca3af; }
+    .search-date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .search-date-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f3f4f6;
+      border-radius: 10px;
+      padding: 9px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .search-date-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      flex-shrink: 0;
+    }
+    .search-date-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-date-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+    .search-date-clear {
+      background: none;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .search-date-clear:active { background: #f3f4f6; }
+    .search-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+      padding: 0 2px 10px;
+    }
+    .search-empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: #9ca3af;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -1612,6 +1723,11 @@ let catAddMode  = false;
 let newCatLabel = '';
 let monthlyFilterCat = ''; // '' = all categories; category key = filtered view
 let collapsedYears   = new Set(); // year strings currently collapsed in Monthly tab
+
+let searchQuery      = '';
+let searchFrom       = '';
+let searchTo         = '';
+let searchAutoFocus  = false;
 
 const CAT_COLORS = [
   '#10b981','#f59e0b','#3b82f6','#ec4899',
@@ -1856,9 +1972,10 @@ function render() {
 function renderNav() {
   const isAdd    = view === 'add';
   const isDetail = view === 'cat-detail';
-  document.getElementById('nav').style.display = (isAdd || isDetail) ? 'none' : '';
-  document.getElementById('fab').style.display = (isAdd || isDetail || view === 'calendar' || view === 'transactions' || view === 'stats' || view === 'recurring' || view === 'monthly') ? 'none' : 'flex';
-  if (isAdd || isDetail) return;
+  const isSearch = view === 'search';
+  document.getElementById('nav').style.display = (isAdd || isDetail || isSearch) ? 'none' : '';
+  document.getElementById('fab').style.display = (isAdd || isDetail || isSearch || view === 'calendar' || view === 'transactions' || view === 'stats' || view === 'recurring' || view === 'monthly') ? 'none' : 'flex';
+  if (isAdd || isDetail || isSearch) return;
   ['transactions','calendar','stats','recurring','monthly'].forEach(v => {
     document.getElementById('nb-' + v).classList.toggle('active', view === v);
   });
@@ -1868,7 +1985,7 @@ function renderHeader() {
   const el = document.getElementById('header');
 
   if (view === 'add') {
-    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Categories', 'cat-detail': 'Detail' };
+    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Categories', 'cat-detail': 'Detail', search: 'Search' };
     const backLbl = backLabels[addViewPrev] || 'Back';
     const rightSlot = (fMode === 'edit' && fIsRecurring)
       ? `<span style="width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;font-size:18px;">🔁</span>`
@@ -1881,6 +1998,19 @@ function renderHeader() {
         </button>
         <span class="add-page-header-title">${fMode === 'add' ? 'New Expense' : 'Edit Expense'}</span>
         ${rightSlot}
+      </div>`;
+    return;
+  }
+
+  if (view === 'search') {
+    el.innerHTML = `
+      <div class="header-row">
+        <button class="add-page-back-btn" onclick="closeSearch()">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 1 1 7 7 13"/></svg>
+          Trans.
+        </button>
+        <span class="add-page-header-title">Search</span>
+        <span style="width:60px;flex-shrink:0"></span>
       </div>`;
     return;
   }
@@ -1918,6 +2048,9 @@ function renderHeader() {
     el.innerHTML = `
       <div class="header-row">
         <span class="header-title">Transactions</span>
+        <button class="header-action" onclick="openSearch()" style="padding:6px;color:#7c3aed">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
       </div>
       ${navHtml('tx-nav','prevTx','nextTx')}
       <div style="text-align:center;padding:0 0 10px;margin-top:-8px;font-size:11px;font-weight:600;color:#374151">${rm(txMonthTotal)}</div>`;
@@ -1963,6 +2096,7 @@ function renderHeader() {
 function renderContent() {
   const el = document.getElementById('content');
   if      (view === 'add')          el.innerHTML = buildAddPage();
+  else if (view === 'search')       el.innerHTML = buildSearch();
   else if (view === 'transactions') el.innerHTML = buildTransactions();
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
   else if (view === 'cat-detail')   el.innerHTML = buildCatDetail();
@@ -1970,6 +2104,7 @@ function renderContent() {
   else if (view === 'monthly')      el.innerHTML = buildMonthly();
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
+  if (view === 'search' && searchAutoFocus) { searchAutoFocus = false; setTimeout(() => { const i = document.getElementById('search-input'); if (i) i.focus(); }, 50); }
   if (view === 'transactions') { renderTxWeekStrip(); initSwipeRows(); }
   if (view === 'calendar') initSwipeRows();
 }
@@ -3385,6 +3520,129 @@ function overlayClick() {
   else if (subSheet === 'cat') { closeCatSheet(); }
   else if (subSheet === 'monthly-filter') { closeMonthlyCatPicker(); }
   else if (view !== 'add') { closeAllSheets(); }
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+
+function openSearch() {
+  searchQuery     = '';
+  searchFrom      = '';
+  searchTo        = '';
+  searchAutoFocus = true;
+  view = 'search';
+  render();
+}
+
+function closeSearch() {
+  view = 'transactions';
+  render();
+}
+
+function buildSearch() {
+  const fromDisplay = searchFrom ? fmtFormDate(searchFrom) : 'Any date';
+  const toDisplay   = searchTo   ? fmtFormDate(searchTo)   : 'Any date';
+  const hasFilter   = searchFrom || searchTo;
+  const clearXSvg = `<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>`;
+
+  return `
+    <div style="padding:16px 16px 120px">
+      <div class="search-bar-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" class="search-bar-input"
+          placeholder="Search notes, descriptions..."
+          value="${searchQuery.replace(/"/g,'&quot;')}"
+          oninput="searchQuery=this.value; renderSearchResults()"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button class="search-clear-btn" id="search-clear-btn" style="${searchQuery ? '' : 'display:none'}"
+          onclick="searchQuery=''; document.getElementById('search-input').value=''; this.style.display='none'; renderSearchResults()">${clearXSvg}</button>
+      </div>
+      <div class="search-date-row">
+        <div class="search-date-pill">
+          <span class="search-date-lbl">From</span>
+          <span class="search-date-val" id="search-from-val">${fromDisplay}</span>
+          <input type="date" class="search-date-input" value="${searchFrom}"
+            onchange="searchFrom=this.value; renderSearchResults()">
+        </div>
+        <div class="search-date-pill">
+          <span class="search-date-lbl">To</span>
+          <span class="search-date-val" id="search-to-val">${toDisplay}</span>
+          <input type="date" class="search-date-input" value="${searchTo}"
+            onchange="searchTo=this.value; renderSearchResults()">
+        </div>
+        <button class="search-date-clear" id="search-date-clear-btn" style="${hasFilter ? '' : 'display:none'}"
+          onclick="searchFrom=''; searchTo=''; document.querySelectorAll('.search-date-input').forEach(i=>i.value=''); renderSearchResults()">Clear</button>
+      </div>
+      <div id="search-results">${buildSearchResults()}</div>
+    </div>`;
+}
+
+function renderSearchResults() {
+  const el = document.getElementById('search-results');
+  if (el) el.innerHTML = buildSearchResults();
+  const clr = document.getElementById('search-clear-btn');
+  if (clr) clr.style.display = searchQuery ? '' : 'none';
+  const fromVal = document.getElementById('search-from-val');
+  if (fromVal) fromVal.textContent = searchFrom ? fmtFormDate(searchFrom) : 'Any date';
+  const toVal = document.getElementById('search-to-val');
+  if (toVal) toVal.textContent = searchTo ? fmtFormDate(searchTo) : 'Any date';
+  const dateClear = document.getElementById('search-date-clear-btn');
+  if (dateClear) dateClear.style.display = (searchFrom || searchTo) ? '' : 'none';
+}
+
+function getSearchResults() {
+  const q      = searchQuery.trim().toLowerCase();
+  const hasQ   = q.length > 0;
+  const hasFrom = !!searchFrom;
+  const hasTo   = !!searchTo;
+  if (!hasQ && !hasFrom && !hasTo) return null;
+  return data.transactions
+    .filter(t => {
+      if (hasFrom && t.date < searchFrom) return false;
+      if (hasTo   && t.date > searchTo)   return false;
+      if (hasQ) {
+        const note = (t.note || '').toLowerCase();
+        const desc = (t.description || '').toLowerCase();
+        if (!note.includes(q) && !desc.includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function buildSearchResults() {
+  const results = getSearchResults();
+  if (results === null) {
+    return `<div class="search-empty">Type to search your notes and descriptions,<br>or pick a date range to browse.</div>`;
+  }
+  if (results.length === 0) {
+    const q = searchQuery.trim();
+    return `<div class="search-empty">${q ? `No results for &ldquo;<strong>${esc(q)}</strong>&rdquo;` : 'No transactions in this date range'}</div>`;
+  }
+  const rows = results.map(t => searchResultRowHtml(t)).join('');
+  return `<div class="search-count">${results.length} result${results.length === 1 ? '' : 's'}</div>
+    <div class="tx-card">${rows}</div>`;
+}
+
+function searchResultRowHtml(t) {
+  const cat     = getCat(t.category);
+  const dateStr = fmtFormDate(t.date);
+  const recurBadge = data.recurring.some(r => r.id === t.recurringId)
+    ? `<span style="font-size:9px;background:#ede9fe;color:#7c3aed;border-radius:4px;padding:1px 4px;font-weight:700;margin-left:4px">🔁</span>`
+    : '';
+  return `
+    <div class="tx-row-wrap">
+      <div class="tx-row" onclick="openEdit('${t.id}')">
+        <div class="tx-left">
+          <div class="tx-icon" style="background:${cat.color}20;color:${cat.color}">${cat.emoji}</div>
+          <span class="tx-cat">${esc(cat.label)}</span>
+        </div>
+        <div class="tx-info">
+          <div class="tx-note">${esc(t.note) || '—'}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px">${dateStr}${recurBadge}</div>
+        </div>
+        <span class="tx-amount">${rm(t.amount)}</span>
+      </div>
+    </div>`;
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
