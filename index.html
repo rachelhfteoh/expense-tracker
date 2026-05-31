@@ -2697,7 +2697,8 @@ function buildRecurring() {
   }
 
   html += `<div style="margin:12px 12px 0;background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.9);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(99,102,241,0.09)">`;
-  for (const r of data.recurring) {
+  const sortedRules = [...data.recurring].sort((a, b) => Number(b.amount) - Number(a.amount));
+  for (const r of sortedRules) {
     const cat  = getCat(r.category);
     const freq = RMAP[r.frequency]?.label || r.frequency;
     html += `<div class="rule-row" style="cursor:pointer" onclick="openRuleEdit('${r.id}')">
