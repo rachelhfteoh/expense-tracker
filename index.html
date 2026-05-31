@@ -2052,6 +2052,16 @@ function renderNav() {
 
 function renderHeader() {
   const el = document.getElementById('header');
+  const navHtml = (id, prev, next) => `
+    <div class="month-nav" id="${id}">
+      <button class="mnav-btn" onclick="${prev}()" ontouchstart="event.stopPropagation()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="month-label" id="${id}-lbl"></span>
+      <button class="mnav-btn" onclick="${next}()" ontouchstart="event.stopPropagation()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>`;
 
   if (view === 'add') {
     const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Categories', 'cat-detail': 'Detail', search: 'Search', budget: 'Budget' };
@@ -2119,17 +2129,6 @@ function renderHeader() {
       </div>`;
     return;
   }
-
-  const navHtml = (id, prev, next) => `
-    <div class="month-nav" id="${id}">
-      <button class="mnav-btn" onclick="${prev}()" ontouchstart="event.stopPropagation()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <span class="month-label" id="${id}-lbl"></span>
-      <button class="mnav-btn" onclick="${next}()" ontouchstart="event.stopPropagation()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>`;
 
   if (view === 'transactions') {
     const txMonthTotal = totalMonth(txYear, txMon);
@@ -3622,6 +3621,9 @@ function overlayClick() {
 // ── Calendar (full-page) ──────────────────────────────────────────────────────
 
 function openCalendar() {
+  calYear = txYear;
+  calMon  = txMon;
+  calSel  = txSelDay;
   view = 'calendar';
   render();
 }
