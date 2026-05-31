@@ -2570,11 +2570,11 @@ function changeTxWeek(dir) {
   if (txWeekOffset >= 0) {
     txSelDay = td;
   } else {
-    const cur = week.find(d => d === txSelDay) ? txSelDay : week[6];
+    const cur = week.find(d => d === txSelDay) ? txSelDay : week[0];
     txSelDay = cur <= td ? cur : td;
   }
-  const { y, m } = parseDate(txSelDay);
-  if (y !== txYear || m !== txMon) { txYear = y; txMon = m; }
+  const { y, m } = parseDate(week[0]);
+  txYear = y; txMon = m;
   renderContent();
 }
 
