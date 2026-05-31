@@ -3624,7 +3624,6 @@ function buildSearchResults() {
 }
 
 function searchResultRowHtml(t) {
-  const cat      = getCat(t.category);
   const { y, m, d } = parseDate(t.date);
   const dayMon   = `${d} ${MONTHS[m].slice(0,3)}`;
   const recurBadge = data.recurring.some(r => r.id === t.recurringId)
@@ -3637,8 +3636,7 @@ function searchResultRowHtml(t) {
           <div style="font-size:12px;font-weight:700;color:#111827;white-space:nowrap">${dayMon} ${y}</div>
         </div>
         <div class="tx-info">
-          <div class="tx-note">${esc(t.note) || '—'}</div>
-          <div style="font-size:11px;color:#374151;font-weight:500;margin-top:3px">${cat.emoji} ${esc(cat.label)}${recurBadge}</div>
+          <div class="tx-note">${esc(t.note) || '—'}${recurBadge}</div>
         </div>
         <span class="tx-amount">${rm(t.amount)}</span>
       </div>
