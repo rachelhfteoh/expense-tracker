@@ -1403,6 +1403,56 @@
     }
     #data-action.show { display: flex; }
 
+    /* ── Budget ── */
+    .budget-row {
+      background: rgba(255,255,255,0.85);
+      border-radius: 16px;
+      margin: 0 12px 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+    .budget-row:active { opacity: 0.8; }
+    .budget-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .budget-bar-wrap {
+      height: 7px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .budget-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      min-width: 2px;
+    }
+    .budget-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+    .add-budget-btn {
+      width: 100%;
+      background: none;
+      border: 2px dashed #d1d5db;
+      border-radius: 14px;
+      padding: 15px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      color: #7c3aed;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-budget-btn:active { background: rgba(124,58,237,0.05); }
+
     /* ── Search ── */
     .search-bar-wrap {
       position: relative;
@@ -1526,12 +1576,6 @@
       </svg>
       <span class="nav-lbl">Transactions</span>
     </button>
-    <button class="nav-btn" id="nb-calendar" onclick="switchView('calendar')">
-      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-      <span class="nav-lbl">Calendar</span>
-    </button>
     <button class="nav-btn" id="nb-stats" onclick="switchView('stats')">
       <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -1549,6 +1593,12 @@
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
       <span class="nav-lbl">Monthly</span>
+    </button>
+    <button class="nav-btn" id="nb-budget" onclick="switchView('budget')">
+      <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>
+      <span class="nav-lbl">Budget</span>
     </button>
   </nav>
 </div>
@@ -1608,6 +1658,16 @@
     <button class="sheet-x" onclick="closeMonthlyCatPicker()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
   </div>
   <div class="sheet-body" id="monthly-filter-body"></div>
+</div>
+
+<!-- Budget Sheet -->
+<div class="sheet" id="budget-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="budget-sheet-title">Set Budget</span>
+    <button class="sheet-x" onclick="closeBudgetSheet()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>
+  </div>
+  <div class="sheet-body" id="budget-sheet-body"></div>
 </div>
 
 <!-- Category Sheet -->
@@ -1679,7 +1739,7 @@ const MONTHS = ['January','February','March','April','May','June',
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let data = { transactions: [], recurring: [], customCats: [], hiddenCats: [] };
+let data = { transactions: [], recurring: [], customCats: [], hiddenCats: [], budgets: [] };
 let view = 'transactions';
 
 let txYear       = new Date().getFullYear();
@@ -1728,6 +1788,13 @@ let searchQuery      = '';
 let searchFrom       = '';
 let searchTo         = '';
 let searchAutoFocus  = false;
+
+let budgetYear      = new Date().getFullYear();
+let budgetMon       = new Date().getMonth();
+let budgetEditCat   = '';
+let budgetEditCents = 0;
+let budgetMode      = 'add';   // 'add' | 'edit'
+let budgetSheetStep = 'pick-cat'; // 'pick-cat' | 'enter-amount'
 
 const CAT_COLORS = [
   '#10b981','#f59e0b','#3b82f6','#ec4899',
@@ -1929,6 +1996,7 @@ function load() {
       data.recurring    = parsed.recurring    || [];
       data.customCats   = parsed.customCats   || [];
       data.hiddenCats   = parsed.hiddenCats   || [];
+      data.budgets      = parsed.budgets      || [];
     }
   } catch(e) {}
   // Backfill new fields on existing transactions
@@ -1973,10 +2041,11 @@ function renderNav() {
   const isAdd    = view === 'add';
   const isDetail = view === 'cat-detail';
   const isSearch = view === 'search';
-  document.getElementById('nav').style.display = (isAdd || isDetail || isSearch) ? 'none' : '';
-  document.getElementById('fab').style.display = (isAdd || isDetail || isSearch || view === 'calendar' || view === 'transactions' || view === 'stats' || view === 'recurring' || view === 'monthly') ? 'none' : 'flex';
-  if (isAdd || isDetail || isSearch) return;
-  ['transactions','calendar','stats','recurring','monthly'].forEach(v => {
+  const isCal    = view === 'calendar';
+  document.getElementById('nav').style.display = (isAdd || isDetail || isSearch || isCal) ? 'none' : '';
+  document.getElementById('fab').style.display = (isAdd || isDetail || isSearch || isCal || view === 'transactions' || view === 'stats' || view === 'budget' || view === 'recurring' || view === 'monthly') ? 'none' : 'flex';
+  if (isAdd || isDetail || isSearch || isCal) return;
+  ['transactions','budget','stats','recurring','monthly'].forEach(v => {
     document.getElementById('nb-' + v).classList.toggle('active', view === v);
   });
 }
@@ -1985,7 +2054,7 @@ function renderHeader() {
   const el = document.getElementById('header');
 
   if (view === 'add') {
-    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Categories', 'cat-detail': 'Detail', search: 'Search' };
+    const backLabels = { transactions: 'Trans.', calendar: 'Calendar', stats: 'Categories', 'cat-detail': 'Detail', search: 'Search', budget: 'Budget' };
     const backLbl = backLabels[addViewPrev] || 'Back';
     const rightSlot = (fMode === 'edit' && fIsRecurring)
       ? `<span style="width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;font-size:18px;">🔁</span>`
@@ -2012,6 +2081,25 @@ function renderHeader() {
         <span class="add-page-header-title">Search</span>
         <span style="width:60px;flex-shrink:0"></span>
       </div>`;
+    return;
+  }
+
+  if (view === 'calendar') {
+    el.innerHTML = `
+      <div class="header-row">
+        <button class="add-page-back-btn" onclick="closeCalendar()">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 1 1 7 7 13"/></svg>
+          Trans.
+        </button>
+        <span class="add-page-header-title">Calendar</span>
+        <span style="width:60px;flex-shrink:0"></span>
+      </div>
+      ${navHtml('cal-nav','prevCal','nextCal')}`;
+    document.getElementById('cal-nav-lbl').textContent = MONTHS[calMon] + ' ' + calYear;
+    const calNavBtns = document.querySelectorAll('#cal-nav .mnav-btn');
+    const calAtCurrent = calYear === new Date().getFullYear() && calMon === new Date().getMonth();
+    if (calNavBtns[1]) { calNavBtns[1].disabled = calAtCurrent; calNavBtns[1].style.opacity = calAtCurrent ? '0.3' : ''; }
+    initSwipe('cal-nav', prevCal, nextCal);
     return;
   }
 
@@ -2048,9 +2136,14 @@ function renderHeader() {
     el.innerHTML = `
       <div class="header-row">
         <span class="header-title">Transactions</span>
-        <button class="header-action" onclick="openSearch()" style="padding:6px;color:#7c3aed">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
+        <div style="display:flex;gap:2px">
+          <button class="header-action" onclick="openCalendar()" style="padding:6px;color:#7c3aed">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <button class="header-action" onclick="openSearch()" style="padding:6px;color:#7c3aed">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
       </div>
       ${navHtml('tx-nav','prevTx','nextTx')}
       <div style="text-align:center;padding:0 0 10px;margin-top:-8px;font-size:11px;font-weight:600;color:#374151">${rm(txMonthTotal)}</div>`;
@@ -2060,15 +2153,15 @@ function renderHeader() {
     if (txNavBtns[1]) { txNavBtns[1].disabled = txAtCurrent; txNavBtns[1].style.opacity = txAtCurrent ? '0.3' : ''; }
     initSwipe('tx-nav', prevTx, nextTx);
 
-  } else if (view === 'calendar') {
+  } else if (view === 'budget') {
     el.innerHTML = `
-      <div class="header-row"><span class="header-title">Calendar</span></div>
-      ${navHtml('cal-nav','prevCal','nextCal')}`;
-    document.getElementById('cal-nav-lbl').textContent = MONTHS[calMon] + ' ' + calYear;
-    const calNavBtns = document.querySelectorAll('#cal-nav .mnav-btn');
-    const calAtCurrent = calYear === new Date().getFullYear() && calMon === new Date().getMonth();
-    if (calNavBtns[1]) { calNavBtns[1].disabled = calAtCurrent; calNavBtns[1].style.opacity = calAtCurrent ? '0.3' : ''; }
-    initSwipe('cal-nav', prevCal, nextCal);
+      <div class="header-row"><span class="header-title">Budget</span></div>
+      ${navHtml('budget-nav','prevBudget','nextBudget')}`;
+    document.getElementById('budget-nav-lbl').textContent = MONTHS[budgetMon] + ' ' + budgetYear;
+    const budgetNavBtns = document.querySelectorAll('#budget-nav .mnav-btn');
+    const budgetAtCurrent = budgetYear === new Date().getFullYear() && budgetMon === new Date().getMonth();
+    if (budgetNavBtns[1]) { budgetNavBtns[1].disabled = budgetAtCurrent; budgetNavBtns[1].style.opacity = budgetAtCurrent ? '0.3' : ''; }
+    initSwipe('budget-nav', prevBudget, nextBudget);
 
   } else if (view === 'recurring') {
     el.innerHTML = `<div class="header-row"><span class="header-title">Recurring</span></div>`;
@@ -2097,6 +2190,7 @@ function renderContent() {
   const el = document.getElementById('content');
   if      (view === 'add')          el.innerHTML = buildAddPage();
   else if (view === 'search')       el.innerHTML = buildSearch();
+  else if (view === 'budget')       el.innerHTML = buildBudget();
   else if (view === 'transactions') el.innerHTML = buildTransactions();
   else if (view === 'calendar')     el.innerHTML = buildCalendar();
   else if (view === 'cat-detail')   el.innerHTML = buildCatDetail();
@@ -2889,6 +2983,7 @@ function importData(input) {
       data.recurring    = parsed.recurring    || [];
       data.customCats   = parsed.customCats   || [];
       data.hiddenCats   = parsed.hiddenCats   || [];
+      data.budgets      = parsed.budgets      || [];
       save();
       render();
       toast(`Imported ${data.transactions.length} transactions`);
@@ -3505,7 +3600,7 @@ function hideSheet(id) {
 
 function closeAllSheets() {
   document.getElementById('overlay').classList.remove('show');
-  ['add-sheet','repeat-sheet','recurring-sheet','cat-sheet','monthly-filter-sheet'].forEach(hideSheet);
+  ['add-sheet','repeat-sheet','recurring-sheet','cat-sheet','monthly-filter-sheet','budget-sheet'].forEach(hideSheet);
   subSheet = null;
   closeCalc();
 }
@@ -3519,7 +3614,223 @@ function overlayClick() {
   else if (subSheet === 'recurring') { closeRecurringSheet(); document.getElementById('overlay').classList.remove('show'); }
   else if (subSheet === 'cat') { closeCatSheet(); }
   else if (subSheet === 'monthly-filter') { closeMonthlyCatPicker(); }
+  else if (subSheet === 'budget') { closeBudgetSheet(); }
   else if (view !== 'add') { closeAllSheets(); }
+}
+
+// ── Calendar (full-page) ──────────────────────────────────────────────────────
+
+function openCalendar() {
+  view = 'calendar';
+  render();
+}
+
+function closeCalendar() {
+  view = 'transactions';
+  render();
+}
+
+// ── Budget tab ────────────────────────────────────────────────────────────────
+
+function prevBudget() {
+  if (budgetMon === 0) { budgetMon = 11; budgetYear--; } else { budgetMon--; }
+  render();
+}
+function nextBudget() {
+  const now = new Date();
+  if (budgetYear === now.getFullYear() && budgetMon === now.getMonth()) return;
+  if (budgetMon === 11) { budgetMon = 0; budgetYear++; } else { budgetMon++; }
+  render();
+}
+
+function buildBudget() {
+  const txs = txForMonth(budgetYear, budgetMon);
+
+  if (data.budgets.length === 0) {
+    return `
+      <div style="text-align:center;padding:60px 24px 24px">
+        <div style="font-size:48px;margin-bottom:12px">🎯</div>
+        <div style="font-size:16px;font-weight:700;color:#374151;margin-bottom:6px">No budgets set</div>
+        <div style="font-size:13px;color:#9ca3af;margin-bottom:28px">Set a monthly target for any category to start tracking your spend.</div>
+      </div>
+      <div style="padding:0 16px 40px">
+        <button class="add-budget-btn" onclick="openBudgetAdd()">+ Add Budget</button>
+      </div>`;
+  }
+
+  // Build spent map for the month
+  const spentMap = {};
+  txs.forEach(t => { spentMap[t.category] = (spentMap[t.category] || 0) + t.amount; });
+
+  let html = `<div style="padding:8px 0 16px">`;
+
+  data.budgets.forEach(b => {
+    const cat     = getCat(b.category);
+    const spent   = spentMap[b.category] || 0;
+    const pct     = b.amount > 0 ? Math.min(spent / b.amount * 100, 100) : 0;
+    const over    = spent > b.amount;
+    const warn    = !over && pct >= 80;
+    const barClr  = over ? '#ef4444' : warn ? '#f59e0b' : '#10b981';
+    const lblClr  = over ? '#ef4444' : warn ? '#f59e0b' : '#6b7280';
+
+    html += `
+      <div class="budget-row" onclick="openBudgetEdit('${b.category}')">
+        <div class="budget-row-top">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="tx-icon" style="background:${cat.color}20;color:${cat.color};width:30px;height:30px;font-size:15px;flex-shrink:0">${cat.emoji}</div>
+            <span style="font-size:13px;font-weight:700;color:#111827">${esc(cat.label)}</span>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <span style="font-size:13px;font-weight:700;color:#111827">${rm(spent)}</span>
+            <span style="font-size:12px;color:#374151"> / ${rm(b.amount)}</span>
+          </div>
+        </div>
+        <div class="budget-bar-wrap">
+          <div class="budget-bar-fill" style="width:${pct}%;background:${barClr}"></div>
+        </div>
+        <div class="budget-footer">
+          <span style="font-size:11px;font-weight:600;color:${lblClr}">${over ? '⚠ Over by ' + rm(spent - b.amount) : Math.round(pct) + '%'}</span>
+          <span style="font-size:11px;color:#374151">${over ? '' : rm(b.amount - spent) + ' left'}</span>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+    <div style="padding:0 16px 40px">
+      <button class="add-budget-btn" onclick="openBudgetAdd()">+ Add Budget</button>
+    </div>`;
+
+  return html;
+}
+
+// ── Budget sheet ──────────────────────────────────────────────────────────────
+
+function openBudgetAdd() {
+  budgetMode      = 'add';
+  budgetSheetStep = 'pick-cat';
+  budgetEditCat   = '';
+  budgetEditCents = 0;
+  renderBudgetSheet();
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('budget-sheet').classList.add('show');
+  subSheet = 'budget';
+}
+
+function openBudgetEdit(catKey) {
+  budgetMode      = 'edit';
+  budgetSheetStep = 'enter-amount';
+  budgetEditCat   = catKey;
+  const existing  = data.budgets.find(b => b.category === catKey);
+  budgetEditCents = existing ? Math.round(existing.amount * 100) : 0;
+  renderBudgetSheet();
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('budget-sheet').classList.add('show');
+  subSheet = 'budget';
+}
+
+function closeBudgetSheet() {
+  document.getElementById('budget-sheet').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  subSheet = null;
+}
+
+function renderBudgetSheet() {
+  const el = document.getElementById('budget-sheet-body');
+  if (!el) return;
+  const titleEl = document.getElementById('budget-sheet-title');
+
+  if (budgetSheetStep === 'pick-cat') {
+    const usedCats  = new Set(data.budgets.map(b => b.category));
+    const available = getAllCats().filter(c => c.key !== 'other' && !usedCats.has(c.key));
+    titleEl.textContent = 'Pick Category';
+
+    if (available.length === 0) {
+      el.innerHTML = `<div class="search-empty">All categories already have a budget.</div>`;
+      return;
+    }
+    let html = '';
+    available.forEach(c => {
+      html += `<div class="rep-option" onclick="budgetPickCat('${c.key}')">
+        <span>${c.emoji} ${esc(c.label)}</span>
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="#9ca3af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 7 7 1 13"/></svg>
+      </div>`;
+    });
+    el.innerHTML = html;
+
+  } else {
+    const cat    = getCat(budgetEditCat);
+    const isEdit = budgetMode === 'edit';
+    titleEl.textContent = isEdit ? 'Edit Budget' : 'Set Budget';
+
+    el.innerHTML = `
+      <div style="padding:12px 16px 0">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f9fafb;border-radius:12px;margin-bottom:16px">
+          <div class="tx-icon" style="background:${cat.color}20;color:${cat.color};width:32px;height:32px;font-size:16px;flex-shrink:0">${cat.emoji}</div>
+          <span style="font-size:14px;font-weight:700;color:#111827">${esc(cat.label)}</span>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Monthly Budget</div>
+        <div id="budget-amt-display" style="font-size:36px;font-weight:800;color:#111827;padding:4px 0 12px;letter-spacing:-1px">0.00</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 16px 12px">
+        ${['7','8','9','4','5','6','1','2','3','⌫','0','00'].map(k => {
+          if (k === '⌫') return `<button class="calc-btn" style="font-size:18px;touch-action:manipulation" onclick="budgetCalcBack()">⌫</button>`;
+          return `<button class="calc-btn" style="touch-action:manipulation" onclick="budgetCalcInput('${k}')">${k}</button>`;
+        }).join('')}
+      </div>
+      <div style="padding:4px 16px ${isEdit ? '8px' : '20px'}">
+        <button onclick="saveBudgetAmount()" style="width:100%;padding:15px;background:#7c3aed;color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent">Save Budget</button>
+      </div>
+      ${isEdit ? `<div style="padding:0 16px 20px">
+        <button onclick="deleteBudgetItem()" style="width:100%;padding:14px;background:none;border:1.5px solid #ef4444;color:#ef4444;border-radius:14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent">Remove Budget</button>
+      </div>` : ''}`;
+
+    updateBudgetDisplay();
+  }
+}
+
+function budgetPickCat(key) {
+  budgetEditCat   = key;
+  budgetSheetStep = 'enter-amount';
+  budgetEditCents = 0;
+  renderBudgetSheet();
+}
+
+function budgetCalcInput(ch) {
+  if (ch === '00') { budgetEditCents = budgetEditCents * 100; }
+  else             { budgetEditCents = budgetEditCents * 10 + parseInt(ch); }
+  if (budgetEditCents > 99999999) budgetEditCents = Math.floor(budgetEditCents / 10);
+  updateBudgetDisplay();
+}
+
+function budgetCalcBack() {
+  budgetEditCents = Math.floor(budgetEditCents / 10);
+  updateBudgetDisplay();
+}
+
+function updateBudgetDisplay() {
+  const el = document.getElementById('budget-amt-display');
+  if (el) el.textContent = centsToStr(budgetEditCents);
+}
+
+function saveBudgetAmount() {
+  if (budgetEditCents <= 0) { toast('Enter a budget amount'); return; }
+  const amount   = budgetEditCents / 100;
+  const existing = data.budgets.findIndex(b => b.category === budgetEditCat);
+  if (existing >= 0) { data.budgets[existing].amount = amount; }
+  else               { data.budgets.push({ category: budgetEditCat, amount }); }
+  save();
+  closeBudgetSheet();
+  renderContent();
+  toast('Budget saved ✓');
+}
+
+function deleteBudgetItem() {
+  if (!confirm('Remove this budget?')) return;
+  data.budgets = data.budgets.filter(b => b.category !== budgetEditCat);
+  save();
+  closeBudgetSheet();
+  renderContent();
+  toast('Budget removed');
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
