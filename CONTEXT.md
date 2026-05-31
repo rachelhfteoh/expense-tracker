@@ -1,17 +1,17 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-All changes committed and pushed. App live, tested in Safari, in active use with real data.
+All changes committed. App live on GitHub Pages. Budget tab built and tested locally; not yet pushed for live testing.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Search / filter transactions
+1. Push Budget tab to GitHub Pages for Rachel to test on device
+2. Refine Budget tab based on feedback
 
 ## Backlog
-- Budget targets per category
-- Category trend history in cat-detail view (monthly breakdown per category)
+(empty)
 
 ## Completed — Archive
 ✅ Requirements gathered — MYR only, expenses only, Sun-Sat calendar
@@ -45,3 +45,6 @@ Nothing in progress.
 ✅ Monthly tab cleanup — removed All Time total, Monthly Avg, and month bar graphs
 ✅ Stats tab renamed to Categories — donut chart removed, replaced with total summary bar
 ✅ No-cache meta tags — added to reduce stale PWA cache on iOS
+✅ Search — keyword search across notes/descriptions + optional date range filter; full-page view
+✅ Calendar moved to full-page — accessed via 📅 icon in Transactions header; freed nav slot
+✅ Budget tab — 5th nav tab (last); set monthly targets per category; progress bars; cash register numpad; month nav

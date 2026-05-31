@@ -382,3 +382,13 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **`view === 'stats'` is the Categories tab** — the internal key is still `'stats'` even though the UI says "Categories". Never rename the key or all navigation, back labels, and renderContent() branching will break.
 - **`saveRuleEdit()` must update ALL linked transactions** — the filter is `t.recurringId === ruleEditId` with NO date restriction. Do not add `&& t.date >= today` back — that was the original bug.
 - **`collapsedYears` is a `Set`, not an array** — use `.has()`, `.add()`, `.delete()`, `.clear()`. Do not use `.includes()` or array methods on it.
+
+### Search, Calendar full-page, Budget tab (Session 17)
+- **Search input focus on keypress** — `oninput` must call `renderSearchResults()` (partial rebuild of `#search-results` only), NOT `renderContent()`. Calling `renderContent()` rebuilds the whole page and loses input focus on every keystroke.
+- **`searchAutoFocus` flag** — set to `true` only in `openSearch()`, consumed once after render. Prevents keyboard auto-opening when returning from edit back to search results.
+- **Date pill display values outside `#search-results`** — `searchFrom/searchTo` display spans and the "Clear" button are outside `#search-results`, so `renderSearchResults()` must also update them via direct DOM manipulation (`getElementById`). Same for the X clear button on the search input.
+- **Calendar is no longer a nav tab** — `view === 'calendar'` is now a full-page view (nav hidden) opened via 📅 icon in Transactions header. `renderNav()` hides nav when `isCal = view === 'calendar'`. The old `else if (view === 'calendar')` branch in `renderHeader()` is replaced by a dedicated branch with a back button. Do NOT add `nb-calendar` back to the nav forEach.
+- **Budget sheet two-step flow** — Add mode has `budgetSheetStep`: 'pick-cat' (category list) → 'enter-amount' (numpad). Edit mode goes directly to 'enter-amount'. `renderBudgetSheet()` handles both steps from the same `#budget-sheet`.
+- **Budget data in `data.budgets[]`** — backfilled in `load()` with `parsed.budgets || []`. Also handled in `importData()`. Always keep both in sync when adding new top-level data fields.
+- **Budget summary bar removed** — per-category budgets don't aggregate meaningfully into a single total. Removed the summary bar from `buildBudget()` at Rachel's request.
+- **`#budget-sheet` must be in `closeAllSheets()`** — added to the array. Always follow this pattern for any new sheet.

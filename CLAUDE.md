@@ -74,7 +74,11 @@ Persisted to `localStorage` under key `'et_v1'`:
     emoji: string,        // auto-assigned '📦'
     color: string         // auto-assigned from CAT_COLORS palette
   }],
-  hiddenCats: [string]    // keys of built-in cats the user has hidden
+  hiddenCats: [string],   // keys of built-in cats the user has hidden
+  budgets: [{
+    category: string,     // category key
+    amount: number        // monthly budget in MYR (same target every month)
+  }]
 }
 ```
 
@@ -90,7 +94,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - No build tools, no npm, no bundler
 
 ### Key state variables
-- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail' | 'recurring' | 'monthly'`
+- `view` — `'transactions' | 'calendar' | 'stats' | 'add' | 'cat-detail' | 'recurring' | 'monthly' | 'search' | 'budget'`
 - `addViewPrev` — view to return to when closing the add page (e.g. `'transactions'`, `'cat-detail'`)
 - `txYear, txMon` — month displayed in Transactions tab
 - `txWeekOffset` — week offset for the week strip (0 = current week, negative = past weeks)
@@ -117,6 +121,14 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `newCatLabel` — new category name being typed
 - `monthlyFilterCat` — category key currently filtering the Monthly tab (`''` = all categories)
 - `collapsedYears` — `Set` of year strings currently collapsed in the Monthly tab year list
+- `searchQuery` — current keyword in search view
+- `searchFrom, searchTo` — ISO date strings for search date range filter (`''` = no filter)
+- `searchAutoFocus` — true only on first open of search; auto-focuses input once, not on return from edit
+- `budgetYear, budgetMon` — month displayed in Budget tab
+- `budgetEditCat` — category key being added/edited in budget sheet
+- `budgetEditCents` — budget amount in integer cents (cash register style)
+- `budgetMode` — `'add' | 'edit'`
+- `budgetSheetStep` — `'pick-cat' | 'enter-amount'`
 
 ### Key helpers
 - `todayStr()` — current date as "YYYY-MM-DD"
@@ -143,6 +155,17 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `exportData()` — serialises data to JSON, triggers browser download as `expenses-backup.json`
 - `importData(input)` — reads selected .json file, validates, confirms, replaces all data, saves, re-renders
 - `openDataSheet()` / `closeDataSheet()` — shows/hides `#data-action` action sheet
+- `openCalendar()` / `closeCalendar()` — opens Calendar as full-page view (nav hidden, ← Trans. back button); closes to transactions
+- `openSearch()` / `closeSearch()` — opens/closes Search full-page view
+- `renderSearchResults()` — partial rebuild of `#search-results` only (no focus loss on keypress)
+- `getSearchResults()` — filters transactions by keyword + date range; returns null if no filter set
+- `openBudgetAdd()` / `openBudgetEdit(catKey)` — opens budget sheet in add (pick-cat step) or edit mode
+- `closeBudgetSheet()` — hides budget sheet + overlay
+- `renderBudgetSheet()` — builds sheet content for current step/mode
+- `budgetPickCat(key)` — selects category in add flow, advances to enter-amount step
+- `budgetCalcInput(ch)` / `budgetCalcBack()` / `updateBudgetDisplay()` — cash register numpad for budget amount
+- `saveBudgetAmount()` — saves/updates budget entry; validates cents > 0
+- `deleteBudgetItem()` — removes budget entry after confirm prompt
 
 ### Bottom panel helpers (Session 4)
 - `openCalc()` — sets `activePanel='calc'`, inits `calcCents` from `fAmount`, shows `#calc-inner`, calls `updateCalcDisplay()`
@@ -238,9 +261,9 @@ Nothing · Every Month
 
 ## Views
 
-**Transactions (default)** — Month nav (← →, swipe). Future months blocked (> dims to 30%). Week strip (S M T W T F S, swipeable, expense dots). Day header always shows: date + day tag + inline purple `+` button (right). Summary bar (day expenses, count). FAB hidden in this view. Tap row → edit view.
+**Transactions (default)** — Header: "Transactions" title + two icons top-right: 📅 (opens Calendar full-page) and 🔍 (opens Search full-page). Month nav (← →, swipe). Future months blocked (> dims to 30%). Week strip (S M T W T F S, swipeable, expense dots). Day header always shows: date + day tag + inline purple `+` button (right). Summary bar (day expenses, count). FAB hidden in this view. Tap row → edit view.
 
-**Calendar** — Month nav (← →, swipe). Future months blocked. Summary bar (month total). Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. FAB hidden.
+**Calendar (`view = 'calendar'`)** — Full-page view (NOT a nav tab). Accessed via 📅 icon in Transactions header. Header: `← Trans.` back button + "Calendar" title + month nav. Nav/FAB hidden. Month nav (← →, swipe). Future months blocked. Sun–Sat grid. Today = purple gradient. Selected = light purple. Amounts shown below date. Tap day → panel below with transactions sorted highest first + + button. `openCalendar()` / `closeCalendar()`.
 
 **Categories (`view = 'stats'`)** — Month nav (← →, swipe). Future months blocked. FAB hidden. No donut chart — replaced with a single summary bar showing Total Expenses for the month. Category breakdown list below (emoji, name, %, amount). `stats-pct`: fixed width 44px, right-aligned. `stats-amt`: fixed width 110px, right-aligned. Tap a category row → cat-detail view. Nav label and header title show "Categories" (internal view key remains `'stats'`).
 
@@ -250,7 +273,11 @@ Nothing · Every Month
 
 **Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count + monthly commitment total). Glass card list of all `data.recurring` rules: emoji, note, sub-line shows `category · frequency · amount`. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
 
-**Monthly (`view = 'monthly'`)** — 5th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Top row: filter pill (left) + Year/Month toggle buttons (right). No filter: no summary bar, chart and list show all transactions. Filtered: summary bar shows Peak Month + Peak Amount; chart and list show that category only; peak month row gets a "Peak" purple badge. SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots — peak dot larger). Month list grouped by year (newest first); year header shows year label (left) + year total in purple (right); tap header to collapse/expand that year's months. Month rows: month name + amount only (no bar graph). Year/Month toggle: Year button collapses all years, Month button expands all. Settings gear opens `#data-action` sheet with Export / Import options.
+**Search (`view = 'search'`)** — Full-page view (NOT a nav tab). Accessed via 🔍 icon in Transactions header. Header: `← Trans.` back button + "Search" title. Nav/FAB hidden. Search bar (keyword, live results via `renderSearchResults()`). Date range pills (From / To) with hidden `<input type="date">`. Results: date left (84px col) + note + amount. Tap result → edit (returns to search after save via `addViewPrev='search'`). `openSearch()` resets state + sets `searchAutoFocus=true`. `searchAutoFocus` prevents keyboard re-opening on return from edit.
+
+**Budget (`view = 'budget'`)** — Last nav tab (5th). Header: "Budget" title + month nav (← →). FAB hidden. No summary bar. Glass card rows per budgeted category: emoji + name, spent/budget amounts, progress bar (green <80%, amber 80–99%, red ≥100%), % label + remaining. Tap row → edit sheet. `+ Add Budget` dashed button at bottom → opens `#budget-sheet` in pick-cat step. `buildBudget()` / `prevBudget()` / `nextBudget()`.
+
+**Monthly (`view = 'monthly'`)** — 4th nav tab. Header: title + settings gear ⚙ (top right). FAB hidden. Top row: filter pill (left) + Year/Month toggle buttons (right). No filter: no summary bar, chart and list show all transactions. Filtered: summary bar shows Peak Month + Peak Amount; chart and list show that category only; peak month row gets a "Peak" purple badge. SVG line chart (up to last 12 months, smooth cardinal spline, filled gradient area, dots — peak dot larger). Month list grouped by year (newest first); year header shows year label (left) + year total in purple (right); tap header to collapse/expand that year's months. Month rows: month name + amount only (no bar graph). Year/Month toggle: Year button collapses all years, Month button expands all. Settings gear opens `#data-action` sheet with Export / Import options.
 
 ### Transaction row layout
 ```
