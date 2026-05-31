@@ -2705,8 +2705,8 @@ function buildRecurring() {
       <span class="rule-ico">${cat.emoji}</span>
       <div class="rule-info">
         <div class="rule-name">${esc(r.note || cat.label)}</div>
-        <div class="rule-sub">${cat.label} · ${freq} · ${rm(r.amount)}</div>
       </div>
+      <span style="font-size:14px;font-weight:700;color:#111827;margin-right:8px">${rm(r.amount)}</span>
       <button class="rule-del" onclick="event.stopPropagation();deleteRuleFromView('${r.id}')">✕</button>
     </div>`;
   }
