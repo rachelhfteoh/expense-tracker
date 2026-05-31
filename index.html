@@ -2560,7 +2560,7 @@ function selectTxDay(ds) {
   txSelDay = ds;
   const { y, m } = parseDate(ds);
   txYear = y; txMon = m;
-  renderContent();
+  render();
 }
 
 function changeTxWeek(dir) {
@@ -2573,9 +2573,9 @@ function changeTxWeek(dir) {
     const cur = week.find(d => d === txSelDay) ? txSelDay : week[0];
     txSelDay = cur <= td ? cur : td;
   }
-  const { y, m } = parseDate(week[0]);
+  const { y, m } = parseDate(txSelDay);
   txYear = y; txMon = m;
-  renderContent();
+  render();
 }
 
 function initTxWeekSwipe() {
