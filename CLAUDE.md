@@ -155,7 +155,7 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 - `exportData()` — serialises data to JSON, triggers browser download as `expenses-backup.json`
 - `importData(input)` — reads selected .json file, validates, confirms, replaces all data, saves, re-renders
 - `openDataSheet()` / `closeDataSheet()` — shows/hides `#data-action` action sheet
-- `openCalendar()` / `closeCalendar()` — opens Calendar as full-page view (nav hidden, ← Trans. back button); closes to transactions
+- `openCalendar()` / `closeCalendar()` — opens Calendar as full-page view (nav hidden, ← Trans. back button); syncs `calYear`/`calMon`/`calSel` from `txYear`/`txMon`/`txSelDay` on open so calendar starts at the same month shown in Transactions; closes to transactions
 - `openSearch()` / `closeSearch()` — opens/closes Search full-page view
 - `renderSearchResults()` — partial rebuild of `#search-results` only (no focus loss on keypress)
 - `getSearchResults()` — filters transactions by keyword + date range; returns null if no filter set
@@ -209,8 +209,8 @@ Migration: add backfill in `load()` for any new fields (same pattern as habit tr
 ### Week strip helpers (Session 5)
 - `getTxWeekDays(offset)` — returns 7 ISO dates for the week at offset (0 = current), starting Sunday
 - `renderTxWeekStrip()` — builds strip HTML into `#tx-week-strip`; called by `renderContent()` after transactions HTML set
-- `selectTxDay(ds)` — sets `txSelDay`, syncs `txYear/txMon`, calls `renderContent()` — shows only that day's transactions
-- `changeTxWeek(dir)` — increments `txWeekOffset`; syncs month; calls `renderContent()`
+- `selectTxDay(ds)` — sets `txSelDay`, syncs `txYear/txMon`, calls `render()` — header updates month label; shows only that day's transactions
+- `changeTxWeek(dir)` — increments `txWeekOffset`; defaults `txSelDay` to `week[0]` (Sunday) if current selection not in new week; syncs `txYear/txMon` from `txSelDay`; calls `render()` so header month label updates
 - `initTxWeekSwipe()` — attaches touch/mouse swipe handlers to the strip (idempotent via `_swipeInit` flag)
 
 ### Swipe-to-delete helpers (Session 10)
@@ -271,7 +271,7 @@ Nothing · Every Month
 
 **Category detail (`view = 'cat-detail'`)** — Full-page. Header: `← Stats` + `[emoji] Category` + month subtitle. Nav/FAB hidden. Summary bar (total, count). Transactions for that category in `stYear/stMon`, grouped by date, compact rows (note + amount only). Tap row → edit (returns to cat-detail after save).
 
-**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count + monthly commitment total). Glass card list of all `data.recurring` rules: emoji, note, sub-line shows `category · frequency · amount`. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
+**Recurring (`view = 'recurring'`)** — 4th nav tab. Header: title only (no month nav). FAB hidden. Summary bar (active rule count + monthly commitment total). Glass card list of all `data.recurring` rules sorted by amount descending: emoji, note, amount (right), ✕ delete (far right) — single line, no sub-line. Tap row → opens Edit Rule sheet (`#recurring-sheet`). ✕ button → `confirm()` → deletes rule + all instances `>= today`; past entries preserved. `buildRecurring()` / `deleteRuleFromView(id)` / `openRuleEdit(id)`.
 
 **Search (`view = 'search'`)** — Full-page view (NOT a nav tab). Accessed via 🔍 icon in Transactions header. Header: `← Trans.` back button + "Search" title. Nav/FAB hidden. Search bar (keyword, live results via `renderSearchResults()`). Date range pills (From / To) with hidden `<input type="date">`. Results: date left (84px col) + note + amount. Tap result → edit (returns to search after save via `addViewPrev='search'`). `openSearch()` resets state + sets `searchAutoFocus=true`. `searchAutoFocus` prevents keyboard re-opening on return from edit.
 

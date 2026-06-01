@@ -383,6 +383,14 @@ Lessons learned, key decisions, and things to remember for future sessions.
 - **`saveRuleEdit()` must update ALL linked transactions** — the filter is `t.recurringId === ruleEditId` with NO date restriction. Do not add `&& t.date >= today` back — that was the original bug.
 - **`collapsedYears` is a `Set`, not an array** — use `.has()`, `.add()`, `.delete()`, `.clear()`. Do not use `.includes()` or array methods on it.
 
+### Week/month sync, calendar fixes (Session 18)
+- **`changeTxWeek` must call `render()`, not `renderContent()`** — the month label (`tx-nav-lbl`) lives in the header, which is only rebuilt by `renderHeader()` inside `render()`. Calling `renderContent()` alone leaves the header stale, so the month never updates as you navigate weeks.
+- **`selectTxDay` must also call `render()`** — same reason: tapping a day in a cross-month week (e.g. May 1 in the Apr 26–May 2 strip) needs to update the month header. Using `renderContent()` only updates the content area.
+- **`changeTxWeek` defaults to `week[0]` (Sunday) when selected day not in new week** — previously defaulted to `week[6]` (Saturday). For a cross-month week like Apr 26–May 2, Saturday = May 2 → header showed May even though you're viewing mostly April. Defaulting to Sunday anchors the month to the start of the week.
+- **`navHtml` const had a temporal dead zone (TDZ) bug** — `navHtml` was declared with `const` at line ~2123 inside `renderHeader()`, but the calendar branch used it at line ~2097 (before the declaration). In JS, `const` cannot be accessed before its declaration in the same scope → `ReferenceError` → app crash/hang when opening calendar. Fix: move `navHtml` declaration to the very top of `renderHeader()`, before any `if` blocks.
+- **`openCalendar()` should sync to current Transactions month** — previously `calYear`/`calMon` kept their own state, so the calendar always opened to the current month regardless of what month Transactions was showing. Fix: copy `txYear`/`txMon`/`txSelDay` into `calYear`/`calMon`/`calSel` at the start of `openCalendar()`.
+- **Local file test ≠ GitHub Pages test for pre-existing bugs** — the calendar full-page feature (Session 17) was never pushed to GitHub Pages before this session. The TDZ bug existed in the committed code but was never caught because the calendar was only tested locally and apparently didn't error there (possibly cached old version). Always push and test on GitHub Pages for any new view or feature.
+
 ### Search, Calendar full-page, Budget tab (Session 17)
 - **Search input focus on keypress** — `oninput` must call `renderSearchResults()` (partial rebuild of `#search-results` only), NOT `renderContent()`. Calling `renderContent()` rebuilds the whole page and loses input focus on every keystroke.
 - **`searchAutoFocus` flag** — set to `true` only in `openSearch()`, consumed once after render. Prevents keyboard auto-opening when returning from edit back to search results.

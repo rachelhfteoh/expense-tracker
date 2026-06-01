@@ -1,14 +1,13 @@
 # CONTEXT.md — Expense Tracker
 
 ## Current Status
-All changes committed. App live on GitHub Pages. Budget tab built and tested locally; not yet pushed for live testing.
+All changes committed and live on GitHub Pages. App fully functional and tested.
 
 ## In Progress
 Nothing in progress.
 
 ## Up Next
-1. Push Budget tab to GitHub Pages for Rachel to test on device
-2. Refine Budget tab based on feedback
+Nothing outstanding — backlog is empty.
 
 ## Backlog
 (empty)
@@ -48,3 +47,8 @@ Nothing in progress.
 ✅ Search — keyword search across notes/descriptions + optional date range filter; full-page view
 ✅ Calendar moved to full-page — accessed via 📅 icon in Transactions header; freed nav slot
 ✅ Budget tab — 5th nav tab (last); set monthly targets per category; progress bars; cash register numpad; month nav
+✅ Recurring tab sorted by amount — highest first
+✅ Recurring rows simplified — single line: emoji · note · amount · ✕
+✅ Week/month sync fixed — header follows selected day; both week nav and day tap update month
+✅ Calendar icon hang fixed — navHtml const moved before calendar block (TDZ bug)
+✅ Calendar opens to current Transactions month — syncs calYear/calMon/calSel from tx state on open
