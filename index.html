@@ -3241,10 +3241,13 @@ function saveTx() {
         const rule = data.recurring.find(r => r.id === tx.recurringId);
         if (rule) {
           rule.note = fNote.trim(); rule.amount = amount; rule.category = fCat;
-          // Recalculate lastGenerated as the max date of all linked transactions,
-          // so the next generated instance uses the correct date anchor.
+          // Recalculate startDate and lastGenerated from all linked transactions
+          // so both the Recurring tab display and next-generation anchor are correct.
           const linked = data.transactions.filter(t => t.recurringId === rule.id).map(t => t.date);
-          if (linked.length) rule.lastGenerated = linked.reduce((a, b) => a > b ? a : b);
+          if (linked.length) {
+            rule.startDate = linked.reduce((a, b) => a < b ? a : b);
+            rule.lastGenerated = linked.reduce((a, b) => a > b ? a : b);
+          }
         }
       } else if (fRepeat !== 'none') {
         const rule = {
