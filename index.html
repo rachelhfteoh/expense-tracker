@@ -1777,6 +1777,7 @@ let ruleEditNote  = '';
 let ruleEditCents = 0;
 let ruleEditFreq  = '';
 let ruleEditCat   = '';
+let ruleEditDate  = '';
 
 // Add-category form state
 let catAddMode  = false;
@@ -3337,6 +3338,7 @@ function openRuleEdit(id) {
   ruleEditCents = Math.round(r.amount * 100);
   ruleEditFreq  = r.frequency;
   ruleEditCat   = r.category;
+  ruleEditDate  = r.startDate;
   subSheet = 'recurring';
   renderRuleEditSheet();
   document.getElementById('overlay').classList.add('show');
@@ -3358,9 +3360,12 @@ function renderRuleEditSheet() {
   document.getElementById('recurring-body').innerHTML = `
     <div style="padding:0 16px 12px">
       <div style="border-radius:12px;overflow:hidden;margin-bottom:12px">
-        <div class="form-row" style="background:rgba(255,255,255,0.9);border-bottom:1px solid #f3f4f6">
+        <div class="form-row" style="background:rgba(255,255,255,0.9);border-bottom:1px solid #f3f4f6;position:relative;cursor:pointer" onclick="document.getElementById('rule-date-input').focus()">
           <span class="form-lbl">Since</span>
-          <span style="font-size:14px;color:#6b7280">${fmtFormDate(r.startDate)}</span>
+          <span style="font-size:14px;color:#111827">${fmtFormDate(ruleEditDate)}</span>
+          <input type="date" id="rule-date-input" value="${ruleEditDate}"
+            onchange="ruleEditDate=this.value;renderRuleEditSheet()"
+            style="opacity:0;width:1px;height:1px;pointer-events:none;position:absolute">
         </div>
         <div class="form-row" style="background:rgba(255,255,255,0.9);border-bottom:1px solid #f3f4f6">
           <span class="form-lbl">Category</span>
@@ -3401,6 +3406,9 @@ function saveRuleEdit() {
   r.note      = ruleEditNote.trim();
   r.amount    = amt;
   r.frequency = ruleEditFreq;
+  r.startDate = ruleEditDate;
+  const linked = data.transactions.filter(t => t.recurringId === ruleEditId).map(t => t.date);
+  r.lastGenerated = linked.length ? linked.reduce((a, b) => a > b ? a : b) : ruleEditDate;
   const today = todayStr();
   data.transactions
     .filter(t => t.recurringId === ruleEditId)
