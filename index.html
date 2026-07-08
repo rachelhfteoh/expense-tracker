@@ -204,31 +204,7 @@
       margin-bottom: 0;
     }
 
-    .tx-row-wrap {
-      position: relative;
-      overflow: hidden;
-      touch-action: pan-y;
-    }
     .tx-row-wrap:last-child .tx-row { border-bottom: none; }
-    .tx-swipe-del {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 76px;
-      background: #ef4444;
-      color: #fff;
-      border: none;
-      font-size: 13px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .tx-swipe-del:active { background: #dc2626; }
 
     .tx-row {
       display: flex;
@@ -1754,6 +1730,7 @@ let calSel  = todayStr();
 let stYear  = new Date().getFullYear();
 let stMon   = new Date().getMonth();
 let catDetailKey = '';
+let catDetailPrev = 'stats'; // view to return to when closing cat-detail — 'stats' or 'monthly'
 
 // Add/edit form state
 let fMode     = 'add'; // 'add' | 'edit'
@@ -2116,11 +2093,12 @@ function renderHeader() {
 
   if (view === 'cat-detail') {
     const cat = getCat(catDetailKey);
+    const cdBackLbl = catDetailPrev === 'monthly' ? 'Monthly' : 'Categories';
     el.innerHTML = `
       <div class="header-row">
         <button class="add-page-back-btn" onclick="closeCatDetail()">
           <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 1 1 7 7 13"/></svg>
-          Categories
+          ${cdBackLbl}
         </button>
         <div style="text-align:center;flex:1">
           <div class="add-page-header-title">${cat.emoji} ${cat.label}</div>
@@ -2199,8 +2177,7 @@ function renderContent() {
   else                              el.innerHTML = buildStats();
   if (view === 'add') initPanel();
   if (view === 'search' && searchAutoFocus) { searchAutoFocus = false; setTimeout(() => { const i = document.getElementById('search-input'); if (i) i.focus(); }, 50); }
-  if (view === 'transactions') { renderTxWeekStrip(); initSwipeRows(); }
-  if (view === 'calendar') initSwipeRows();
+  if (view === 'transactions') renderTxWeekStrip();
 }
 
 // ── Transactions view ─────────────────────────────────────────────────────────
@@ -2250,7 +2227,6 @@ function buildTransactions() {
 
 function txRowHtml(t, cat) {
   return `<div class="tx-row-wrap" data-id="${t.id}">
-    <button class="tx-swipe-del" onclick="swipeDeleteTx('${t.id}')">Delete</button>
     <div class="tx-row" onclick="openEdit('${t.id}')">
       <div class="tx-left">
         <div class="tx-icon" style="background:${cat.color}1a">${cat.emoji}</div>
@@ -2400,7 +2376,6 @@ function buildStats() {
 // ── Navigation ────────────────────────────────────────────────────────────────
 
 function switchView(v) {
-  closeOpenSwipeRow();
   view = v;
   render();
   document.getElementById('content').scrollTop = 0;
@@ -2443,83 +2418,6 @@ function getTxWeekDays(offset = 0) {
     const d = new Date(sun);
     d.setDate(sun.getDate() + i);
     return d.toISOString().slice(0, 10);
-  });
-}
-
-function swipeDeleteTx(id) {
-  const tx = data.transactions.find(t => t.id === id);
-  data.transactions = data.transactions.filter(t => t.id !== id);
-  if (tx?.recurringId) {
-    const today = todayStr();
-    data.transactions = data.transactions.filter(t => !(t.recurringId === tx.recurringId && t.date > today));
-    data.recurring = data.recurring.filter(r => r.id !== tx.recurringId);
-  }
-  save();
-  renderContent();
-  toast('Deleted');
-}
-
-const SWIPE_W = 76; // must match .tx-swipe-del width
-let _openWrap = null;
-
-function closeOpenSwipeRow() {
-  if (_openWrap) {
-    const r = _openWrap.querySelector('.tx-row');
-    if (r) { r.style.transition = 'transform 0.2s ease'; r.style.transform = 'translateX(0)'; }
-    _openWrap = null;
-  }
-}
-
-function initSwipeRows() {
-  document.querySelectorAll('.tx-row-wrap').forEach(wrap => {
-    if (wrap._swipeInit) return;
-    wrap._swipeInit = true;
-    const row = wrap.querySelector('.tx-row');
-    let sx = 0, sy = 0, isOpen = false, tracking = false;
-
-    wrap.addEventListener('touchstart', e => {
-      sx = e.touches[0].clientX;
-      sy = e.touches[0].clientY;
-      tracking = true;
-      row.style.transition = 'none';
-    }, { passive: true });
-
-    wrap.addEventListener('touchmove', e => {
-      if (!tracking) return;
-      const dx = e.touches[0].clientX - sx;
-      const dy = e.touches[0].clientY - sy;
-      if (Math.abs(dy) > Math.abs(dx) + 4) { tracking = false; return; }
-      e.preventDefault();
-      const base = isOpen ? -SWIPE_W : 0;
-      const x = Math.max(-SWIPE_W, Math.min(0, base + dx));
-      row.style.transform = `translateX(${x}px)`;
-    }, { passive: false });
-
-    wrap.addEventListener('touchend', e => {
-      if (!tracking) return;
-      tracking = false;
-      const dx = e.changedTouches[0].clientX - sx;
-      row.style.transition = 'transform 0.2s ease';
-      if (!isOpen && dx < -SWIPE_W / 2) {
-        row.style.transform = `translateX(-${SWIPE_W}px)`;
-        if (_openWrap && _openWrap !== wrap) closeOpenSwipeRow();
-        _openWrap = wrap;
-        isOpen = true;
-      } else if (isOpen && dx > SWIPE_W / 2) {
-        row.style.transform = 'translateX(0)';
-        _openWrap = null;
-        isOpen = false;
-      } else if (isOpen) {
-        row.style.transform = `translateX(-${SWIPE_W}px)`;
-      } else {
-        row.style.transform = 'translateX(0)';
-      }
-    }, { passive: true });
-
-    /* Tap on the row while open → close instead of edit */
-    row.addEventListener('click', e => {
-      if (isOpen) { closeOpenSwipeRow(); isOpen = false; e.stopPropagation(); e.preventDefault(); }
-    }, true);
   });
 }
 
@@ -2613,12 +2511,13 @@ function nextSt() {
 
 function openCatDetail(key) {
   catDetailKey = key;
+  catDetailPrev = 'stats';
   view = 'cat-detail';
   render();
 }
 
 function closeCatDetail() {
-  view = 'stats';
+  view = catDetailPrev;
   render();
 }
 
@@ -2940,10 +2839,18 @@ function closeMonthlyCatPicker() {
 }
 
 function goToMonth(y, m) {
-  txYear = Number(y);
-  txMon = Number(m);
-  syncTxToMonth();
-  switchView('transactions');
+  if (monthlyFilterCat) {
+    catDetailKey = monthlyFilterCat;
+    catDetailPrev = 'monthly';
+    stYear = Number(y);
+    stMon = Number(m);
+    view = 'cat-detail';
+    render();
+    return;
+  }
+  stYear = Number(y);
+  stMon = Number(m);
+  switchView('stats');
 }
 
 function openDataSheet() {
